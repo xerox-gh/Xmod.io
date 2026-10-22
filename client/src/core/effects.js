@@ -51,22 +51,13 @@ export class Effects {
     );
   }
   event(e) {
-    const pos = e.p || e.entity?.p;
-    const distance = pos ? this.game.view.camera.position.distanceTo(new T.Vector3(...pos)) : 0;
-    this.audio.event(e, distance);
+    this.audio.event(e);
     if (e.type === 'spawn') {
       this.burst(new T.Vector3(...e.entity.p), '#d7fa94', 10);
-      const entity = this.game.sim.entities.get(e.entity.id);
-      entity?.body.addEventListener('collide', (event) => {
-        if (!this.game.sim.remote) {
-          const speed = Math.abs(event.contact.getImpactVelocityAlongNormal());
-          this.audio.impact(
-            speed,
-            this.game.view.camera.position.distanceTo(new T.Vector3().copy(entity.body.position)),
-          );
-        }
-      });
     }
+    if (e.type === 'flame') this.burst(new T.Vector3(...e.p), '#ff983e', 12);
+    if (e.type === 'targetHit') this.burst(new T.Vector3(...e.p), '#d7fa94', 14);
+    if (e.type === 'bounce') this.burst(new T.Vector3(...e.p), '#9ce4e3', 8);
     if (e.type === 'explosion') this.burst(new T.Vector3(...e.p), '#f5b468', 60);
     if (e.type === 'tracer') {
       if (this.tracers.length >= 40) this.removeTracer(this.tracers.shift());
@@ -85,6 +76,12 @@ export class Effects {
     t.line.material.dispose();
   }
   update(dt) {
+    const camera = this.game.view.camera;
+    this.audio.listener(
+      camera.position.toArray(),
+      camera.getWorldDirection(new T.Vector3()).toArray(),
+      new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).toArray(),
+    );
     for (let i = 0; i < this.pool.length; i++) {
       const p = this.pool[i];
       p.life -= dt;

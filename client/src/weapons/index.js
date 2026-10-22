@@ -5,7 +5,15 @@ import rocket from './rocket.js';
 export class Weapons {
   constructor(game) {
     this.game = game;
-    this.config = { pistol, shotgun, rocket };
+    this.config = {
+      pistol,
+      shotgun,
+      rocket,
+      crowbar: { recoil: 0.035, flash: '#a4d4d4' },
+      grenade: { recoil: 0.04, flash: '#e5c68b' },
+      flamethrower: { recoil: 0.008, flash: '#ff863b' },
+      exploder: { recoil: 0.05, flash: '#fa926d' },
+    };
     this.states = new Map();
     this.time = 0;
   }
@@ -25,7 +33,7 @@ export class Weapons {
       this.reload(id);
       return;
     }
-    s.ammo--;
+    if (!WEAPONS[id].unlimited) s.ammo--;
     s.next = this.time + WEAPONS[id].interval;
     this.game.action({ kind: 'fire', weapon: id });
     this.game.player.recoil += this.config[id].recoil;
@@ -41,6 +49,7 @@ export class Weapons {
     }
   }
   ammoLabel(id) {
+    if (WEAPONS[id].unlimited) return 'MELEE';
     const s = this.state(id);
     return s.reload ? 'RELOADING' : `${s.ammo} / ${WEAPONS[id].capacity}`;
   }

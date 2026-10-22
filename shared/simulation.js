@@ -19,7 +19,20 @@ export class Simulation {
     this.projectiles = new Map();
     this.time = 0;
     this.remote = false;
+    this.timeScale = 1;
+    this.physicsMs = 0;
+    this.perfTicks = 0;
+    this.lastImpact = -1;
     this.onEvent = () => {};
+  }
+  changeMap(id) {
+    const world = createWorld(id);
+    this.clear();
+    this.undoStacks.clear();
+    for (const id of this.projectiles.keys()) this.emit('projectileRemove', { id });
+    this.projectiles.clear();
+    this.world = world;
+    this.emit('map', { map: id });
   }
   id(prefix = 'p') {
     return `${prefix}${++this.serial}`;
@@ -31,10 +44,12 @@ export class Simulation {
     release(this, owner);
   }
   reserve(owner, count) {
+    const cap = owner === 'local' ? LIMITS.bodies : LIMITS.perPlayer;
+    if (count > cap) throw new Error(`A build can contain at most ${LIMITS.perPlayer} bodies`);
     while (this.entities.size + count > LIMITS.bodies)
       this.removeGroup(this.entities.values().next().value.group);
     let owned = [...this.entities.values()].filter((e) => e.owner === owner);
-    while (owned.length + count > LIMITS.perPlayer) {
+    while (owned.length + count > cap) {
       this.removeGroup(owned[0].group);
       owned = [...this.entities.values()].filter((e) => e.owner === owner);
     }
@@ -46,7 +61,8 @@ export class Simulation {
     const def = PROPS[type];
     if (!def) throw new Error('Unknown prop');
     const own = [...this.entities.values()].filter((e) => e.owner === owner);
-    if (own.length >= LIMITS.perPlayer) this.removeGroup(own[0].group);
+    if (!options.restoring && own.length >= (owner === 'local' ? LIMITS.bodies : LIMITS.perPlayer))
+      this.removeGroup(own[0].group);
     while (this.entities.size >= LIMITS.bodies)
       this.removeGroup(this.entities.values().next().value.group);
     const id = options.id || this.id(),
@@ -58,35 +74,89 @@ export class Simulation {
       group: options.group || id,
       scale,
       color: options.color || def.color,
-      frozen: false,
+      frozen: options.frozen ?? !!def.anchored,
+      behavior: { ...(def.behavior || {}), ...(options.behavior || {}) },
       body: this.makeBody(type, scale),
     };
     entity.body.position.set(...position);
+    if (entity.frozen) {
+      entity.body.mass = 0;
+      entity.body.type = C.Body.STATIC;
+      entity.body.updateMassProperties();
+    }
     entity.body.entityId = id;
-    if (options.q) entity.body.quaternion.set(...options.q);
+    if (options.q) {
+      entity.body.quaternion.set(...options.q);
+      entity.body.quaternion.normalize();
+    }
+    entity.body.aabbNeedsUpdate = true;
     this.entities.set(id, entity);
     this.world.addBody(entity.body);
+    if (!this.remote)
+      entity.body.addEventListener('collide', (event) => {
+        const speed = Math.abs(event.contact.getImpactVelocityAlongNormal());
+        if (speed > 2 && this.time - this.lastImpact > 0.075) {
+          this.lastImpact = this.time;
+          this.emit('impact', { p: entity.body.position.toArray(), speed, material: entity.type });
+        }
+        if (entity.behavior.explosive && speed > 11) entity.behavior.detonate = true;
+        if (entity.behavior.npc && speed > 9) entity.behavior.stun = this.time + 3;
+      });
     this.emit('spawn', { entity: this.serialize(entity) });
     return entity;
   }
   makeBody(type, scale) {
     const d = PROPS[type],
       s = d.size.map((n) => n * scale);
-    const shape =
+    let shape =
       d.shape === 'sphere'
         ? new C.Sphere(s[0])
         : d.shape === 'cylinder'
           ? new C.Cylinder(s[0], s[0], s[1], 12)
           : new C.Box(vec(s.map((n) => n / 2)));
+    if (d.shape === 'cone') shape = new C.Cylinder(0.02 * s[0], s[0], s[1], 8);
+    if (d.shape === 'ramp') {
+      const [x, y, z] = s.map((n) => n / 2);
+      shape = new C.ConvexPolyhedron({
+        vertices: [
+          [-x, -y, -z],
+          [x, -y, -z],
+          [-x, -y, z],
+          [x, -y, z],
+          [-x, y, -z],
+          [x, y, -z],
+        ].map((p) => new C.Vec3(...p)),
+        faces: [
+          [0, 2, 3, 1],
+          [0, 1, 5, 4],
+          [0, 4, 2],
+          [1, 3, 5],
+          [2, 4, 5, 3],
+        ].map((f) => f.reverse()),
+      });
+    }
     const body = new C.Body({
       mass: d.mass * scale ** 3,
-      shape,
+      shape: d.shape === 'pipe' ? undefined : shape,
       material: this.world.defaultMaterial,
       linearDamping: 0.12,
       angularDamping: 0.2,
       sleepSpeedLimit: 0.15,
       sleepTimeLimit: 0.8,
     });
+    if (d.shape === 'pipe') {
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2,
+          r = s[0] * 0.88;
+        const q = new C.Quaternion();
+        q.setFromEuler(0, -a, 0);
+        body.addShape(
+          new C.Box(new C.Vec3(s[0] * 0.13, s[1] / 2, s[0] * 0.26)),
+          new C.Vec3(Math.cos(a) * r, 0, Math.sin(a) * r),
+          q,
+        );
+      }
+    }
     body.collisionFilterGroup = 1;
     body.collisionFilterMask = 3;
     return body;
@@ -100,6 +170,7 @@ export class Simulation {
       scale: e.scale,
       color: e.color,
       frozen: e.frozen,
+      behavior: { ...e.behavior },
       p: e.body.position.toArray().map(round),
       q: e.body.quaternion.toArray().map(round),
     };
@@ -111,7 +182,7 @@ export class Simulation {
       if (c.a === id || c.b === id) this.removeConstraint?.(key);
     for (const [key, g] of this.grabs) if (g.id === id) this.release?.(key);
     if (this.vehicles.has(id)) {
-      this.vehicles.get(id).vehicle.removeFromWorld(this.world);
+      this.vehicles.get(id).vehicle?.removeFromWorld(this.world);
       this.vehicles.delete(id);
     }
     this.world.removeBody(e.body);
@@ -124,7 +195,7 @@ export class Simulation {
   remember(owner, item) {
     const stack = this.undoStacks.get(owner) || [];
     stack.push(item);
-    if (stack.length > 100) stack.shift();
+    if (stack.length > 40) stack.shift();
     this.undoStacks.set(owner, stack);
   }
   undo(owner) {
@@ -139,8 +210,19 @@ export class Simulation {
   }
   step(dt) {
     this.time += dt;
+    // Sleeping bodies are skipped by cannon's broadphase and solver. Shorten only
+    // the idle timeout far from every player; moving bodies are never forced asleep.
+    if (!this.remote && ++this.perfTicks % 30 === 0) {
+      const players = this.world.bodies.filter((b) => b.collisionFilterGroup === 2);
+      for (const e of this.entities.values()) {
+        const distant = players.every((b) => b.position.distanceTo(e.body.position) > 70);
+        e.body.sleepTimeLimit = distant ? 0.3 : 0.8;
+      }
+    }
     if (!this.remote) stepProjectiles(this, dt);
+    const start = performance.now();
     this.world.step(dt);
+    this.physicsMs = performance.now() - start;
     if (!this.remote)
       for (const e of [...this.entities.values()])
         if (e.body.position.y < -45 || e.body.position.length() > 350) this.removeGroup(e.group);

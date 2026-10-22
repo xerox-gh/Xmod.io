@@ -109,7 +109,8 @@ export class NetworkClient {
   welcome(m) {
     const g = this.game;
     g.tools.deactivate();
-    g.sim.clear();
+    g.sim.changeMap(m.map || 'flatgrass');
+    g.sim.timeScale = m.timeScale ?? 1;
     g.sim.remote = true;
     g.sim.grabs.clear();
     g.sim.undoStacks.clear();
@@ -125,13 +126,13 @@ export class NetworkClient {
     g.player.state.id = m.id;
     g.player.state.vehicleId = null;
     g.player.setFly(false);
-    g.player.state.body.position.set(0, 2.2, 14);
+    g.player.state.body.position.set(...g.sim.world.map.spawn);
     g.player.state.body.velocity.setZero();
     g.sim.world.gravity.y = -m.gravity;
     g.weapons.states.clear();
     g.actor.loadout = {};
     for (const e of m.entities) this.replica(e);
-    for (const c of m.constraints) g.constraintView.event({ type: 'constraint', constraint: c });
+    for (const c of m.constraints) g.onSimEvent({ type: 'constraint', constraint: c });
     g.toast(`Joined ${m.roomName}`);
   }
   replica(data) {
@@ -156,6 +157,13 @@ export class NetworkClient {
     }
     if (m.type === MSG.EVENT) {
       const e = m.event;
+      if (e.type === 'map') {
+        this.tracks.clear();
+        g.sim.changeMap(e.map);
+        g.weapons.states.clear();
+        return;
+      }
+      if (e.type === 'time') g.sim.timeScale = e.value;
       if (e.type === 'spawn') {
         this.replica(e.entity);
         return;
@@ -171,13 +179,23 @@ export class NetworkClient {
           if (entity.scale !== e.entity.scale) {
             const next = g.sim.makeBody(entity.type, e.entity.scale);
             while (entity.body.shapes.length) entity.body.removeShape(entity.body.shapes[0]);
-            entity.body.addShape(next.shapes[0]);
+            next.shapes.forEach((shape, i) =>
+              entity.body.addShape(shape, next.shapeOffsets[i], next.shapeOrientations[i]),
+            );
+            entity.body.updateBoundingRadius();
           }
           Object.assign(entity, {
             scale: e.entity.scale,
             color: e.entity.color,
             frozen: e.entity.frozen,
+            behavior: e.entity.behavior || {},
           });
+        }
+        if (entity) {
+          entity.body.position.set(...e.entity.p);
+          entity.body.quaternion.set(...e.entity.q);
+          entity.body.aabbNeedsUpdate = true;
+          this.tracks.set(entity.id, new Track());
         }
         g.onSimEvent(e);
         return;
@@ -220,6 +238,8 @@ export class NetworkClient {
       const input = this.game.input.locked
         ? { ...p.packet, activate: this.game.input.down('KeyF') }
         : { yaw: p.yaw, pitch: p.pitch };
+      if (this.game.cameraRig.mode === 'free')
+        Object.assign(input, { forward: 0, right: 0, jump: false, crouch: false });
       this.send({ type: MSG.INPUT, input });
     }
     if (this.pingClock > 2) {
@@ -245,7 +265,8 @@ export class NetworkClient {
     g.sim.clear();
     for (const id of [...g.constraintView.lines.keys()]) g.constraintView.remove(id);
     g.sim.remote = false;
-    g.sim.world.gravity.y = -20;
+    g.sim.changeMap('flatgrass');
+    g.sim.timeScale = 1;
     g.owner = 'local';
     g.actor.id = 'local';
     g.actor.admin = true;
@@ -254,7 +275,7 @@ export class NetworkClient {
     g.player.setFly(false);
     g.player.state.body.type = C.Body.DYNAMIC;
     g.player.state.body.collisionResponse = true;
-    g.player.state.body.position.set(0, 2.2, 14);
+    g.player.state.body.position.set(...g.sim.world.map.spawn);
     g.weapons.states.clear();
     g.actor.loadout = {};
   }

@@ -61,12 +61,40 @@ export function createRenderer(canvas, settings) {
     camera,
     sun,
     sky,
-    setNight(night) {
+    setSky(preset) {
+      const night = preset === 'night' || preset === 'void';
       ambient.intensity = night ? 0.8 : 2.3;
       sun.intensity = night ? 0.65 : 3.2;
-      sky.material.uniforms.topColor.value.set(night ? '#101d3d' : '#7abbd1');
-      sky.material.uniforms.bottomColor.value.set(night ? '#465976' : '#e4edd5');
-      scene.fog.color.set(night ? '#293c55' : '#b8d8da');
+      sky.material.uniforms.topColor.value.set(
+        preset === 'sunset'
+          ? '#6b658e'
+          : preset === 'void'
+            ? '#080c1c'
+            : night
+              ? '#101d3d'
+              : '#7abbd1',
+      );
+      sky.material.uniforms.bottomColor.value.set(
+        preset === 'sunset'
+          ? '#ffbb86'
+          : preset === 'void'
+            ? '#202440'
+            : night
+              ? '#465976'
+              : '#e4edd5',
+      );
+      scene.fog.color.set(
+        preset === 'sunset'
+          ? '#bc9e9b'
+          : preset === 'void'
+            ? '#141a2e'
+            : night
+              ? '#293c55'
+              : '#b8d8da',
+      );
+    },
+    setNight(night) {
+      this.setSky(night ? 'night' : 'day');
     },
   };
 }

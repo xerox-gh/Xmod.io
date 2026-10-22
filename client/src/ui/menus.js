@@ -4,9 +4,10 @@ export class Menus {
     this.game = game;
     this.el = document.createElement('div');
     this.el.className = 'menu-screen';
-    this.el.innerHTML = `<div class="menu-top"><a class="wordmark">Xmod<span>.io</span></a><span class="build-label"><i></i> SANDBOX / EARLY ACCESS</span></div><div class="menu-layout"><section class="intro"><div class="eyebrow"><span class="line"></span> A PHYSICS PLAYGROUND</div><h1>Big ideas.<br>Zero rules<span>.</span></h1><p>Build a contraption. Break the laws of physics.<br>Or just throw a sofa at your friends.</p><button class="play-button" id="play"><span><small>YOUR WORLD. YOUR WAY.</small><strong>Enter playground</strong></span><b>↗</b></button><div class="menu-links"><button id="multiplayer">◎ Multiplayer</button><button id="settings">⚙ Settings</button><button id="controls">⌘ Controls</button></div><span class="intro-foot">NO DOWNLOADS. NO ASSETS. JUST POSSIBILITIES.</span></section><div class="map-caption"><span>01 / THE ORIGINAL PLAYGROUND</span><h2>Flatgrass</h2><p>Room to make something ridiculous.</p><div><span>PROCEDURAL WORLD</span><span>200 PHYSICS BODIES</span></div></div></div><footer class="menu-bottom"><span><b>●</b> READY WHEN YOU ARE</span><span>MADE TO BE MESSED WITH ↗</span><span>v0.1 / XMOD.IO</span></footer>`;
+    this.el.innerHTML = `<div class="menu-top"><a class="wordmark">Xmod<span>.io</span></a><span class="build-label"><i></i> SANDBOX / EARLY ACCESS</span></div><div class="menu-layout"><section class="intro"><div class="eyebrow"><span class="line"></span> A PHYSICS PLAYGROUND</div><h1>Big ideas.<br>Zero rules<span>.</span></h1><p>Build a contraption. Break the laws of physics.<br>Or just throw a sofa at your friends.</p><button class="play-button" id="play"><span><small>YOUR WORLD. YOUR WAY.</small><strong>Enter playground</strong></span><b>↗</b></button><div class="menu-links"><button id="multiplayer">◎ Multiplayer</button><button id="workbench">▧ Workbench</button><button id="settings">⚙ Settings</button><button id="controls">⌘ Controls</button></div><span class="intro-foot">NO DOWNLOADS. NO ASSETS. JUST POSSIBILITIES.</span></section><div class="map-caption"><span>01 / THE ORIGINAL PLAYGROUND</span><h2>Flatgrass</h2><p>Room to make something ridiculous.</p><div><span>PROCEDURAL WORLD</span><span>200 PHYSICS BODIES</span></div></div></div><footer class="menu-bottom"><span><b>●</b> READY WHEN YOU ARE</span><span>MADE TO BE MESSED WITH ↗</span><span>v0.2 / XMOD.IO</span></footer>`;
     root.append(this.el);
     this.el.querySelector('#play').onclick = () => game.resume();
+    this.el.querySelector('#workbench').onclick = () => game.workbench.open();
     this.el.querySelector('#settings').onclick = () => this.settings();
     this.el.querySelector('#controls').onclick = () => this.controls();
     this.el.querySelector('#multiplayer').onclick = () => this.multiplayer();
@@ -79,6 +80,11 @@ export class Menus {
         ['Z', 'Undo last action'],
         ['F', 'Thrusters / wheel motors'],
         ['N', 'Day / night'],
+        ['B', 'Workbench / save / maps'],
+        ['G', 'Box select / group move'],
+        ['H / P', 'Slow motion / freeze time'],
+        ['F2 / F5', 'Screenshot / camera mode'],
+        ['F3', 'Performance overlay'],
         ['T', 'Room chat'],
         ['` / ENTER', 'Console'],
         ['ESC', 'Pause / close menu'],

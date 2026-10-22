@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { extraMesh } from './extra-meshes.js';
 import { PROPS } from '../../../shared/props.js';
 // Geometry is cached. Only each prop's materials need disposal.
 const cache = new Map();
@@ -10,6 +11,14 @@ const box = () => geometry('box', () => new T.BoxGeometry(1, 1, 1));
 const cylinder = () => geometry('cylinder', () => new T.CylinderGeometry(1, 1, 1, 12));
 const sphere = () => geometry('sphere', () => new T.IcosahedronGeometry(1, 1));
 export function makePropMesh(type, color = PROPS[type].color) {
+  if (PROPS[type].model) {
+    const root = new T.Group(),
+      child = makePropMesh(PROPS[type].model, color);
+    child.scale.setScalar(PROPS[type].modelScale);
+    root.add(child);
+    root.userData.materials = child.userData.materials;
+    return root;
+  }
   const d = PROPS[type],
     root = new T.Group();
   const material = new T.MeshStandardMaterial({ color, roughness: 0.78, flatShading: true });
@@ -24,7 +33,8 @@ export function makePropMesh(type, color = PROPS[type].color) {
     root.add(mesh);
     return mesh;
   };
-  if (d.shape === 'sphere') {
+  if (extraMesh(type, d, add, { box, cylinder, sphere, geometry }, root, material, dark, light)) {
+  } else if (d.shape === 'sphere') {
     add(sphere(), [d.size[0], d.size[0], d.size[0]]);
     if (type === 'ball')
       for (let i = 0; i < 3; i++) {

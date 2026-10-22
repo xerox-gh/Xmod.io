@@ -49,7 +49,7 @@ export function createGameServer(options = {}) {
   const wss = new WebSocketServer({
     server,
     path: '/ws',
-    maxPayload: 8192,
+    maxPayload: 262144,
     perMessageDeflate: false,
     verifyClient: (info) => !origins.length || origins.includes(info.origin),
   });
@@ -126,7 +126,7 @@ export function createGameServer(options = {}) {
           const a = m.action;
           if (!a || typeof a !== 'object') throw new Error('Invalid action');
           if (
-            (a.kind === 'spawn' ||
+            (['spawn', 'loadBuild', 'duplicate'].includes(a.kind) ||
               (a.kind === 'tool' && ['wheel', 'balloon', 'thruster'].includes(a.mode))) &&
             !spawn.take()
           )

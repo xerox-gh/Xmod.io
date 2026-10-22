@@ -106,9 +106,32 @@ try {
   await peer.getByLabel('Chat message').press('Enter');
   await expect(page.locator('.chat-log')).toContainText('<b>hello playground</b>');
   await expect(page.locator('.chat-log b')).toHaveCount(0);
+  // Keep real replicated constraint metadata for online build exports.
+  await peer.evaluate(async () => {
+    const { game: g } = await import('/src/main.js');
+    const own = [...g.sim.entities.values()].find((e) => e.owner === g.owner);
+    const world = [...g.sim.entities.values()].find((e) => e.owner === 'world');
+    g.action({ kind: 'tool', mode: 'weld', id: own.id, other: world.id });
+  });
+  await expect
+    .poll(() => peer.evaluate(async () => (await import('/src/main.js')).game.sim.constraints.size))
+    .toBe(1);
+  await peer.keyboard.press('KeyB');
+  await peer.locator('[data-worktab="builds"]').click();
+  await peer.locator('#make-code').click();
+  const shared = await peer.getByLabel('Build share code').inputValue();
+  expect(JSON.parse(Buffer.from(shared.slice(6), 'base64').toString()).constraints.length).toBe(1);
+  await page.keyboard.press('KeyB');
+  await page.locator('[data-worktab="world"]').click();
+  await page.getByLabel('Map', { exact: true }).selectOption('city');
+  await page.locator('#apply-map').click();
+  await expect
+    .poll(() => peer.evaluate(async () => (await import('/src/main.js')).game.sim.world.map.id))
+    .toBe('city');
+  await expect(page.locator('#body-count')).toContainText('0 /');
   await peer.close();
   await expect.poll(() => server.rooms.get('browser-smoke')?.players.size).toBe(1);
-  await expect(page.locator('#body-count')).toContainText('4 /');
+  await expect(page.locator('#body-count')).toContainText('0 /');
   expect(errors).toEqual([]);
   console.log(
     'Browser smoke passed: UI, settings, pointer lock, spawning, undo, weapons, noclip, two-peer sync and escaped chat.',

@@ -35,8 +35,8 @@ function label(scene, text, position, width = 7) {
   mesh.position.set(...position);
   scene.add(mesh);
 }
-export function buildFlatgrass(scene) {
-  for (const box of FLATGRASS.boxes) {
+export function buildFlatgrass(scene, data = FLATGRASS) {
+  for (const box of data.boxes) {
     const material = mat(box.color);
     if (box.ground) {
       const texture = gridTexture();
@@ -50,18 +50,22 @@ export function buildFlatgrass(scene) {
     mesh.castShadow = !box.ground;
     scene.add(mesh);
   }
-  const water = new T.Mesh(
-    new T.PlaneGeometry(...FLATGRASS.water.s),
-    new T.MeshStandardMaterial({
-      color: '#54bcc6',
-      roughness: 0.2,
-      transparent: true,
-      opacity: 0.78,
-    }),
-  );
-  water.rotation.x = -Math.PI / 2;
-  water.position.set(...FLATGRASS.water.p);
-  scene.add(water);
+  const water = data.water
+    ? new T.Mesh(
+        new T.PlaneGeometry(...data.water.s),
+        new T.MeshStandardMaterial({
+          color: '#54bcc6',
+          roughness: 0.2,
+          transparent: true,
+          opacity: 0.78,
+        }),
+      )
+    : null;
+  if (water) {
+    water.rotation.x = -Math.PI / 2;
+    water.position.set(...data.water.p);
+    scene.add(water);
+  }
   // Static scenery uses one instanced draw call for the distant polygon islands.
   const geo = new T.ConeGeometry(6, 18, 4),
     mountains = new T.InstancedMesh(geo, mat('#89a89c'), 48);
@@ -74,17 +78,37 @@ export function buildFlatgrass(scene) {
     dummy.updateMatrix();
     mountains.setMatrixAt(i, dummy.matrix);
   }
+  mountains.visible = data.id !== 'void';
   scene.add(mountains);
-  label(scene, 'XMOD / BUILD ANYTHING', [0, 5.2, -13], 12);
-  label(scene, 'THE WORKSHOP', [30, 10.3, -18.8], 10);
-  label(scene, 'WATER TEST', [10, 1.8, 16], 8);
+  if (data.terrain) {
+    const geometry = new T.BufferGeometry();
+    geometry.setAttribute('position', new T.Float32BufferAttribute(data.terrain.vertices, 3));
+    geometry.setIndex(data.terrain.indices);
+    geometry.computeVertexNormals();
+    const mesh = new T.Mesh(geometry, mat('#98b98a'));
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+  }
+  if (data.id === 'flatgrass') {
+    label(scene, 'XMOD / BUILD ANYTHING', [0, 5.2, -13], 12);
+    label(scene, 'THE WORKSHOP', [30, 10.3, -18.8], 10);
+    label(scene, 'WATER TEST', [10, 1.8, 16], 8);
+  }
+  if (data.id === 'city') {
+    for (let x of [-24, 24])
+      for (let i = 0; i < 25; i++) {
+        const window = new T.Mesh(new T.BoxGeometry(0.1, 1.5, 1.5), mat('#e2d89c'));
+        window.position.set(x + 9.05, 3 + (i % 3) * 3, Math.floor(i / 3) * 12 - 70);
+        scene.add(window);
+      }
+  }
   const pad = new T.Mesh(new T.CylinderGeometry(5, 5, 0.12, 6), mat('#e3e9c6'));
   pad.position.set(0, 0.04, 9);
   pad.receiveShadow = true;
   scene.add(pad);
   return {
     update(time) {
-      water.position.y = FLATGRASS.water.p[1] + Math.sin(time * 1.2) * 0.08;
+      if (water) water.position.y = data.water.p[1] + Math.sin(time * 1.2) * 0.08;
     },
   };
 }

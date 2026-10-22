@@ -8,17 +8,29 @@ export class ProjectileView {
   }
   event(e) {
     if (e.type === 'projectile') {
-      const mesh = new T.Mesh(this.geometry, this.material);
+      const mesh = new T.Mesh(
+        e.kind === 'grenade' ? new T.IcosahedronGeometry(0.18, 0) : this.geometry,
+        this.material,
+      );
+      mesh.userData.grenade = e.kind === 'grenade';
       mesh.position.fromArray(e.p);
       const velocity = new T.Vector3(...e.v);
       mesh.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), velocity.clone().normalize());
       this.game.view.scene.add(mesh);
       this.rockets.set(e.id, { mesh, velocity });
     }
+    if (e.type === 'projectileBounce') {
+      const r = this.rockets.get(e.id);
+      if (r) {
+        r.mesh.position.fromArray(e.p);
+        r.velocity.fromArray(e.v);
+      }
+    }
     if (e.type === 'projectileRemove') {
       const r = this.rockets.get(e.id);
       if (r) {
         this.game.view.scene.remove(r.mesh);
+        if (r.mesh.userData.grenade) r.mesh.geometry.dispose();
         this.rockets.delete(e.id);
       }
     }
@@ -29,7 +41,7 @@ export class ProjectileView {
       if (authority) r.mesh.position.copy(authority.p);
       else {
         r.mesh.position.addScaledVector(r.velocity, dt);
-        r.velocity.y -= 2 * dt;
+        r.velocity.y -= (r.mesh.userData.grenade ? 20 : 2) * dt;
       }
     }
   }

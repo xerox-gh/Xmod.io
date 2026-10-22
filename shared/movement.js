@@ -11,6 +11,7 @@ export function createPlayer(world, id = 'local') {
   body.collisionFilterMask = 1;
   body.allowSleep = false;
   body.position.set(...world.map.spawn);
+  body.aabbNeedsUpdate = true;
   body.updateMassProperties();
   world.addBody(body);
   return {

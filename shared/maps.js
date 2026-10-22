@@ -33,4 +33,82 @@ export const FLATGRASS = {
   ],
   water: { p: [10, -3, 35], s: [44, 34] },
 };
-export const MAPS = { flatgrass: FLATGRASS };
+// Terrain vertices are shared by the renderer and cannon-es heightfield collider.
+const terrain = { vertices: [], indices: [] };
+const cells = 40,
+  spacing = 6;
+for (let z = 0; z <= cells; z++)
+  for (let x = 0; x <= cells; x++) {
+    const wx = (x - cells / 2) * spacing,
+      wz = (z - cells / 2) * spacing;
+    const h =
+      Math.hypot(wx, wz) < 20 ? 0 : 2.3 + Math.sin(wx * 0.055) * 3.4 + Math.sin(wz * 0.07) * 2.3;
+    terrain.vertices.push(wx, h, wz);
+  }
+for (let z = 0; z < cells; z++)
+  for (let x = 0; x < cells; x++) {
+    const a = z * (cells + 1) + x,
+      b = a + 1,
+      c = a + cells + 1,
+      d = c + 1;
+    terrain.indices.push(a, c, b, b, c, d);
+  }
+const ground = { p: [0, -1, 0], s: [240, 2, 240], color: '#a4bd91', ground: true };
+export const MAPS = {
+  flatgrass: FLATGRASS,
+  hills: {
+    id: 'hills',
+    name: 'Open hills',
+    spawn: [0, 2.2, 12],
+    boxes: [],
+    terrain,
+    water: null,
+    theme: 'hills',
+  },
+  obstacle: {
+    id: 'obstacle',
+    name: 'Obstacle course',
+    spawn: [0, 2.2, 25],
+    water: null,
+    boxes: [
+      ground,
+      ...Array.from({ length: 20 }, (_, i) => ({
+        p: [Math.sin(i * 0.8) * 10, i * 0.42 + 1, 12 - i * 6],
+        s: [4, 1, 4],
+        color: i % 2 ? '#dfb987' : '#8eb8be',
+      })),
+      ...[-1, 1].map((x) => ({
+        p: [x * 18, 3, -30],
+        s: [3, 1, 35],
+        rx: x * 0.18,
+        color: '#d4a576',
+      })),
+    ],
+  },
+  city: {
+    id: 'city',
+    name: 'City block',
+    spawn: [0, 2.2, 18],
+    water: null,
+    boxes: [
+      { ...ground, color: '#a6b2ad' },
+      { p: [0, 0.03, 0], s: [13, 0.08, 220], color: '#4b5f61' },
+      { p: [0, 0.03, -25], s: [210, 0.08, 12], color: '#4b5f61' },
+      ...[-1, 1].flatMap((side) =>
+        Array.from({ length: 6 }, (_, i) => ({
+          p: [side * (24 + (i % 2) * 8), (12 + (i % 3) * 8) / 2, i * 27 - 85],
+          s: [18, 12 + (i % 3) * 8, 19],
+          color: ['#c3bcad', '#aebec3', '#d1c4a9'][i % 3],
+        })),
+      ),
+    ],
+  },
+  void: {
+    id: 'void',
+    name: 'The void',
+    spawn: [0, 2.2, 6],
+    water: null,
+    boxes: [{ p: [0, -0.5, 0], s: [32, 1, 32], color: '#65788a', ground: true }],
+    theme: 'void',
+  },
+};

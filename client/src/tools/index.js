@@ -42,7 +42,7 @@ export class Tools {
         else if (tool === 'gravitygun') this.gravitygun.click(button);
         else if (tool === 'spawner') g.spawner.click(button);
         else if (tool === 'ragdoll' && button === 0) g.spawner.spawn('ragdoll');
-        else if (tool === 'vehicle' && button === 0) g.spawner.spawn('car');
+        else if (tool === 'vehicle' && button === 0) g.spawner.spawn(g.vehicleChoice || 'car');
         else if (tool === 'toolgun') this.toolgun?.click(button);
         else if (button === 0) g.weapons?.fire(tool);
       }
@@ -50,6 +50,7 @@ export class Tools {
         if (g.toolId === 'toolgun') this.toolgun?.cycle();
         else g.weapons?.reload(g.toolId);
       }
+      if (g.toolId === 'flamethrower' && input.buttons.has(0)) g.weapons.fire('flamethrower');
       this.toolgun?.tick(dt);
     });
   }

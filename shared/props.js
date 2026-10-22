@@ -1,5 +1,6 @@
 // Dimensions in meters, mass in kilograms. Every visual is procedural.
-export const PROPS = Object.freeze({
+import { EXTRA_PROPS } from './extra-props.js';
+const definitions = {
   box: {
     name: 'Utility cube',
     category: 'Boxes',
@@ -161,7 +162,33 @@ export const PROPS = Object.freeze({
     mass: 3,
     color: '#e8ad79',
   },
-});
+};
+Object.assign(definitions, EXTRA_PROPS);
+definitions.car.vehicle = 'car';
+for (const id of [
+  'box',
+  'crate',
+  'barrel',
+  'ball',
+  'plank',
+  'board',
+  'ramp',
+  'pipe',
+  'tire',
+  'cone',
+]) {
+  const d = definitions[id];
+  definitions['mega_' + id] = {
+    ...d,
+    name: 'Mega ' + d.name.toLowerCase(),
+    category: 'Mega props',
+    size: d.size.map((n) => n * 3),
+    mass: d.mass * 27,
+    model: id,
+    modelScale: 3,
+  };
+}
+export const PROPS = Object.freeze(definitions);
 export const CATEGORIES = [
   'All props',
   'Boxes',
@@ -171,5 +198,10 @@ export const CATEGORIES = [
   'Ragdolls',
   'Vehicles',
   'Furniture',
+  'Construction',
+  'Behavior',
+  'Targets',
+  'Lighting',
+  'Mega props',
 ];
 export const publicProps = Object.entries(PROPS).filter(([, p]) => p.category !== 'internal');

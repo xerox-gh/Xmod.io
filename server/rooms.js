@@ -1,3 +1,4 @@
+import { stepBehaviors } from '../shared/behaviors.js';
 import { Simulation, round } from '../shared/simulation.js';
 import { createPlayer, movePlayer } from '../shared/movement.js';
 import { updateGrabs, release } from '../shared/grabbing.js';
@@ -12,7 +13,15 @@ export class Room {
     this.sim = new Simulation();
     this.players = new Map();
     this.emptySince = null;
-    this.sim.onEvent = (event) => this.broadcast({ type: MSG.EVENT, event });
+    this.sim.onEvent = (event) => {
+      if (event.type === 'map')
+        for (const a of this.players.values()) {
+          a.state = createPlayer(this.sim.world, a.id);
+          a.input = { yaw: 0, pitch: 0 };
+          a.loadout = {};
+        }
+      this.broadcast({ type: MSG.EVENT, event });
+    };
     for (const [type, p] of [
       ['crate', [-5, 1, -4]],
       ['crate', [-5, 2.8, -4]],
@@ -60,6 +69,8 @@ export class Room {
       entities: [...this.sim.entities.values()].map((e) => this.sim.serialize(e)),
       constraints: [...this.sim.constraints.values()].map(serializeConstraint),
       gravity: -this.sim.world.gravity.y,
+      map: this.sim.world.map.id,
+      timeScale: this.sim.timeScale,
     });
     this.broadcast({ type: MSG.CHAT, name: 'SERVER', text: `${name} joined the playground.` });
     return actor;
@@ -82,20 +93,23 @@ export class Room {
     if (!this.players.size) this.emptySince = performance.now();
   }
   tick() {
-    const now = performance.now();
+    const now = performance.now(),
+      dt = STEP * this.sim.timeScale;
     for (const a of this.players.values()) {
       if (now - a.lastInput > 350) a.input = { yaw: a.state.yaw, pitch: a.state.pitch };
       if (a.state.vehicleId && !this.sim.vehicles.has(a.state.vehicleId)) exitCar(this.sim, a);
-      if (!a.state.vehicleId) movePlayer(a.state, a.input, this.sim.world, STEP);
+      if (!a.state.vehicleId && dt) movePlayer(a.state, a.input, this.sim.world, dt);
       else {
         a.state.yaw = a.input.yaw;
         a.state.pitch = a.input.pitch;
       }
     }
-    updateGrabs(this.sim, this.players, STEP);
+    if (!dt) return;
+    updateGrabs(this.sim, this.players, dt);
+    stepBehaviors(this.sim, this.players, dt);
     stepAttachments(this.sim, this.players);
     stepCars(this.sim, this.players);
-    this.sim.step(STEP);
+    this.sim.step(dt);
   }
   snapshot() {
     return {

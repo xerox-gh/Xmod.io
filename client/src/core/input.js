@@ -2,6 +2,7 @@
 export class Input {
   constructor(canvas, onUnlock, onLock) {
     this.canvas = canvas;
+    this.active = false;
     this.keys = new Set();
     this.edges = new Set();
     this.buttons = new Set();
@@ -10,10 +11,13 @@ export class Input {
     this.dx = 0;
     this.dy = 0;
     document.addEventListener('pointerlockchange', () => {
+      this.active = this.locked;
       // resume() clears stale input before requesting the lock. Clearing here on
       // entry would erase a fresh keypress arriving before this queued event.
-      if (this.locked) onLock?.();
-      else {
+      if (this.locked) {
+        this.dx = this.dy = 0;
+        onLock?.();
+      } else {
         this.clear();
         onUnlock?.();
       }
@@ -27,12 +31,13 @@ export class Input {
       }
       if (!this.keys.has(e.code)) this.edges.add(e.code);
       this.keys.add(e.code);
+      if (['F2', 'F3', 'F5'].includes(e.code)) e.preventDefault();
       if (this.locked && ['Space', 'Tab', 'KeyQ', 'KeyT', 'Backquote'].includes(e.code))
         e.preventDefault();
     });
     document.addEventListener('keyup', (e) => this.keys.delete(e.code));
     document.addEventListener('mousemove', (e) => {
-      if (this.locked) {
+      if (this.locked && this.active) {
         this.dx += e.movementX;
         this.dy += e.movementY;
       }
@@ -61,10 +66,13 @@ export class Input {
     return document.pointerLockElement === this.canvas;
   }
   lock() {
+    this.active = false;
     this.canvas.focus();
     return this.canvas.requestPointerLock();
   }
   unlock() {
+    this.active = false;
+    this.dx = this.dy = 0;
     document.exitPointerLock?.();
   }
   pressed(code) {
@@ -90,6 +98,7 @@ export class Input {
       jump: this.down('Space'),
       sprint: this.down('ShiftLeft'),
       crouch: this.down('KeyC'),
+      binds: ['KeyF', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'KeyI', 'KeyO'].filter((k) => this.down(k)),
     };
   }
 }

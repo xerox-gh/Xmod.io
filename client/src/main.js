@@ -1,8 +1,10 @@
 import './ui/style.css';
 import './ui/multiplayer.css';
 import { Game } from './core/game.js';
+// Export the running instance for local development and browser integration checks.
+export let game;
 try {
-  const game = new Game();
+  game = new Game();
   game.start();
 } catch (error) {
   console.error(error);

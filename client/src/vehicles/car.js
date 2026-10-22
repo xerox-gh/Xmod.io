@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { PROPS } from '../../../shared/props.js';
 import { vehicleSnapshot } from '../../../shared/vehicles.js';
 export class VehicleView {
   constructor(game) {
@@ -49,11 +50,15 @@ export class VehicleView {
       distance = 5;
     for (const e of g.sim.entities.values()) {
       const d = e.body.position.distanceTo(g.player.state.body.position);
-      if (e.type === 'car' && d < distance) {
+      if (PROPS[e.type].vehicle && d < distance) {
         closest = e.id;
         distance = d;
       }
     }
     if (closest) g.action({ kind: 'vehicle', id: closest });
+    else {
+      const hit = g.props.aim(g.view.camera, 6);
+      if (hit) g.action({ kind: 'interact', id: hit.id });
+    }
   }
 }

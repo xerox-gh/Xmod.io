@@ -10,7 +10,7 @@ export const LIMITS = Object.freeze({
 });
 export const STEP = 1 / 60;
 export const SYNC_RATE = 20;
-export const PROTOCOL = 1;
+export const PROTOCOL = 2;
 export const MSG = Object.freeze({
   JOIN: 'join',
   WELCOME: 'welcome',
@@ -32,6 +32,11 @@ export const TOOL_MODES = [
   'Resize',
   'Color Paint',
   'Remover',
+  'Duplicator',
+  'Motor',
+  'Hinge',
+  'Slider',
+  'Pose',
 ];
 export const HOTBAR = [
   {
@@ -64,3 +69,20 @@ export const HOTBAR = [
     hint: 'LMB spawn · E enter/exit nearby vehicle · WASD drive · Space brake',
   },
 ];
+
+export const TOOL_IDS = [
+  'weld',
+  'rope',
+  'thruster',
+  'wheel',
+  'balloon',
+  'resize',
+  'paint',
+  'remove',
+  'duplicate',
+  'motor',
+  'hinge',
+  'slider',
+  'pose',
+];
+export const BIND_KEYS = ['KeyF', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'KeyI', 'KeyO'];

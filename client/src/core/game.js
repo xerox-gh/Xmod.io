@@ -1,4 +1,12 @@
 import * as T from 'three';
+import { createPlayer } from '../../../shared/movement.js';
+import { stepBehaviors } from '../../../shared/behaviors.js';
+import { Workbench } from '../ui/workbench.js';
+import { Selection } from '../tools/selection.js';
+import { CameraRig } from '../player/camera-rig.js';
+import { Recorder } from './recorder.js';
+import { Weather } from './weather.js';
+import { Quality } from './quality.js';
 import { createRenderer } from './renderer.js';
 import { loadSettings } from './settings.js';
 import { Input } from './input.js';
@@ -74,6 +82,15 @@ export class Game {
     this.net = new NetworkClient(this);
     this.chat = new Chat(this, this.root);
     this.openMultiplayer = (panel) => openMultiplayer(this, panel);
+    this.workbench = new Workbench(this);
+    this.selection = new Selection(this);
+    this.cameraRig = new CameraRig(this);
+    this.recorder = new Recorder(this);
+    this.weather = new Weather(this);
+    this.quality = new Quality(this);
+    this.weaponChoice = 'pistol';
+    this.vehicleChoice = 'car';
+    this.sky = 'day';
     // A live diorama becomes an immediate physics playground after Play.
     for (const [type, p] of [
       ['crate', [-5, 1, -4]],
@@ -86,7 +103,7 @@ export class Game {
       this.sim.spawn(type, p, 'world');
   }
   get toolId() {
-    return HOTBAR[this.slot].id;
+    return this.slot === 4 ? this.weaponChoice || 'pistol' : HOTBAR[this.slot].id;
   }
   direction() {
     return this.view.camera.getWorldDirection(new T.Vector3());
@@ -104,6 +121,7 @@ export class Game {
     this.menus.hide();
     this.spawnMenu.el.hidden = true;
     this.console.el.hidden = true;
+    if (this.selection) this.selection.el.hidden = true;
     this.effects.audio.unlock().catch(() => {});
     this.input.clear();
     Promise.resolve(this.input.lock()).catch(() => {
@@ -116,7 +134,42 @@ export class Game {
     this.tools?.deactivate();
     this.slot = (slot + HOTBAR.length) % HOTBAR.length;
   }
+  resetMap() {
+    this.map.dispose();
+    this.map = loadMap(this.sim.world.map.id, this.view.scene);
+    this.player.world = this.sim.world;
+    this.player.state = createPlayer(this.sim.world, this.owner);
+    this.player.yaw = 0;
+    this.player.pitch = -0.08;
+    this.player.packet = { yaw: 0, pitch: 0 };
+    this.actor.state = this.player.state;
+    this.actor.loadout = {};
+    this.weapons?.states.clear();
+    this.selection?.ids.clear();
+    this.recorder?.stopPlayback();
+    if (this.recorder) this.recorder.recording = false;
+    this.vehicleId = null;
+    const name = this.sim.world.map.name;
+    this.menus.el.querySelector('.map-caption h2').textContent = name;
+    this.menus.el.querySelector('.map-caption>span').textContent = 'YOUR NEXT PLAYGROUND';
+    if (this.sim.world.map.id === 'void') {
+      this.sky = 'void';
+      this.view.setSky('void');
+    } else if (this.sky === 'void') {
+      this.sky = 'day';
+      this.view.setSky('day');
+    }
+  }
   onSimEvent(event) {
+    if (event.type === 'map') this.resetMap();
+    if (this.sim.remote && event.type === 'constraint')
+      this.sim.constraints.set(event.constraint.id, { ...event.constraint, joint: null });
+    if (this.sim.remote && event.type === 'unconstraint') this.sim.constraints.delete(event.id);
+    if (this.sim.remote && event.type === 'motor')
+      Object.assign(this.sim.constraints.get(event.id) || {}, {
+        speed: event.speed,
+        bind: event.bind,
+      });
     this.props.event(event);
     this.effects?.event(event);
     this.constraintView?.event(event);
@@ -134,9 +187,18 @@ export class Game {
   }
   frame(dt, time) {
     const input = this.input;
+    if (input.pressed('F3')) this.quality.toggle();
     if (input.locked && (input.pressed('Backquote') || input.pressed('Enter'))) this.console.open();
     if (input.locked && input.pressed('KeyT')) this.chat.open();
-    if (input.locked) {
+    if (input.locked && input.pressed('KeyB')) this.workbench.open();
+    if (input.locked && !this.recorder.playing) {
+      if (input.pressed('KeyG')) this.selection.open();
+      if (input.pressed('KeyH'))
+        this.action({ kind: 'time', value: this.sim.timeScale === 0.25 ? 1 : 0.25 });
+      if (input.pressed('KeyP'))
+        this.action({ kind: 'time', value: this.sim.timeScale === 0 ? 1 : 0 });
+      if (input.pressed('F5')) this.cameraRig.cycle();
+      if (input.pressed('F2')) this.recorder.screenshot();
       if (input.pressed('KeyQ')) this.spawnMenu.open();
       if (input.pressed('KeyV')) this.action({ kind: 'noclip' });
       if (input.pressed('KeyE') && !this.tools.physgun.held) this.vehicles.interact();
@@ -159,26 +221,45 @@ export class Game {
       this.view.camera.lookAt(-3, 0, -8);
     }
     this.spawner.update();
-    this.props.update();
+    this.props.update(this.view.camera);
+    this.selection.update();
     this.constraintView.update();
     this.vehicles.update();
+    if (this.started) this.cameraRig.update(dt);
     this.tools.viewmodel.update(dt);
     this.projectiles.update(dt);
     this.map.update(time);
     this.hud.update(dt);
     this.effects?.update(dt);
-    this.weapons?.update(dt);
+    this.weapons?.update(dt * this.sim.timeScale);
+    this.weather.update(dt);
+    this.quality.update(dt);
     this.net?.update(dt);
+    this.recorder.update(dt);
+    this.props.proxy.visible = !this.recorder.playing;
+    if (this.recorder.playing) {
+      this.tools.viewmodel.root.visible = false;
+      this.cameraRig.avatar.visible = false;
+    }
+    for (const { line } of this.constraintView.lines.values())
+      if (this.recorder.playing) line.visible = false;
+    for (const { mesh } of this.projectiles.rockets.values()) mesh.visible = !this.recorder.playing;
     this.view.renderer.render(this.view.scene, this.view.camera);
   }
   fixed(dt) {
+    dt *= this.sim.timeScale;
     this.actor.input = {
       ...(this.player.packet || {}),
       activate: this.input.locked && this.input.down('KeyF'),
     };
-    if (!this.player.state.vehicleId) this.player.step(dt);
+    if (this.cameraRig?.mode === 'free') {
+      Object.assign(this.actor.input, { forward: 0, right: 0, jump: false, crouch: false });
+    }
+    if (!dt) return;
+    if (!this.player.state.vehicleId && this.cameraRig?.mode !== 'free') this.player.step(dt);
     if (!this.sim.remote) {
       updateGrabs(this.sim, this.actors, dt);
+      stepBehaviors(this.sim, this.actors, dt);
       stepAttachments(this.sim, this.actors);
       stepCars(this.sim, this.actors);
     }

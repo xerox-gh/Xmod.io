@@ -54,7 +54,7 @@ export class GameConsole {
     const g = this.game;
     if (cmd === 'help')
       return this.print(
-        '/spawn <prop> · /gravity <-40..40> · /clear · /noclip · /undo · /day · /night · /kick <name>',
+        '/spawn <prop> · /gravity <-40..40> · /clear · /noclip · /undo · /day · /night · /map <id> · /time <0|0.25|1> · /camera <first|third|chase|free> · /kick <name>',
       );
     if (cmd === 'spawn') {
       g.spawner.spawn(args[0] || 'barrel');
@@ -65,6 +65,9 @@ export class GameConsole {
       g.action({ kind: 'gravity', value: +args[0] });
       return;
     }
+    if (cmd === 'map') return g.action({ kind: 'map', map: args[0] });
+    if (cmd === 'time') return g.action({ kind: 'time', value: Number(args[0]) });
+    if (cmd === 'camera') return g.cameraRig.set(args[0]);
     if (cmd === 'clear' || cmd === 'undo' || cmd === 'noclip') return g.action({ kind: cmd });
     if (cmd === 'day' || cmd === 'night') {
       g.night = cmd === 'night';

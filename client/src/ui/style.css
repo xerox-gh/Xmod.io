@@ -821,3 +821,223 @@ kbd {
     display: none;
   }
 }
+/* Workbench, collection preferences, and box selection. */
+.workbench-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 22px 0;
+}
+.workbench-tabs button {
+  border: 1px solid #536360;
+  padding: 10px 20px;
+  border-radius: 7px;
+  color: #cbd9d3;
+  background: #223330;
+  text-transform: capitalize;
+}
+.workbench-tabs button.active {
+  background: #d7fa94;
+  color: #20302e;
+  border-color: #d7fa94;
+}
+.workbench-content {
+  max-height: 60vh;
+  overflow: auto;
+  padding: 2px 4px 18px;
+}
+.workbench-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+.workbench-grid section {
+  min-width: 0;
+}
+.workbench-grid h3 {
+  margin: 0 0 12px;
+  font-size: 21px;
+  letter-spacing: -0.5px;
+}
+.workbench-grid p {
+  line-height: 1.6;
+  font-size: 13px;
+}
+.workbench-grid label {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  margin: 12px 0;
+}
+.workbench-grid select,
+.workbench-grid input[type='number'],
+.selection-bar input {
+  background: #152723;
+  border: 1px solid #52645b;
+  border-radius: 5px;
+  padding: 9px;
+  color: #e9eee3;
+  max-width: 190px;
+  min-width: 0;
+}
+.workbench-grid button,
+.workbench-footer button,
+.selection-bar button,
+.file-button {
+  padding: 10px 12px;
+  margin: 4px 4px 4px 0;
+  border: 1px solid #5b705d;
+  border-radius: 6px;
+  background: #304539;
+  color: #e3edda;
+  font-size: 12px;
+  cursor: pointer;
+}
+.workbench-grid button:hover,
+.workbench-footer button:hover {
+  background: #d7fa94;
+  color: #1e302b;
+}
+.workbench-grid textarea {
+  width: 100%;
+  resize: vertical;
+  background: #152723;
+  color: #e8f0df;
+  border: 1px solid #52645b;
+  border-radius: 6px;
+  padding: 12px;
+  font: 11px/1.5 monospace;
+}
+.workbench-grid .file-button {
+  display: inline-flex;
+}
+.file-button input {
+  max-width: 200px;
+  font-size: 11px;
+}
+.pose-angles {
+  display: flex;
+  gap: 8px;
+}
+.pose-angles input {
+  width: 65px;
+}
+.workbench-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #435147;
+  padding-top: 12px;
+  font-size: 11px;
+  color: #a4b4a5;
+}
+.workbench-content + .workbench-footer {
+  margin-top: 8px;
+}
+.prop-card-wrap {
+  position: relative;
+}
+.prop-card-wrap .prop-card {
+  width: 100%;
+  height: 100%;
+}
+.favorite-toggle {
+  position: absolute;
+  z-index: 2;
+  right: 6px;
+  top: 6px;
+  background: #20302ebf;
+  color: #e0f8ad;
+  border: 0;
+  border-radius: 5px;
+  font-size: 20px;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+.selection-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: auto;
+  z-index: 25;
+  cursor: crosshair;
+  background: #99baff05;
+}
+.selection-bar {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  right: 24px;
+  background: #172b28ed;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #627663;
+  border-radius: 8px;
+  color: #e1eddc;
+  cursor: default;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.selection-bar label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.selection-bar input {
+  width: 55px;
+  padding: 7px;
+}
+.selection-box {
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid #d7fa94;
+  background: #d7fa9426;
+}
+.debug-overlay {
+  position: absolute;
+  top: 80px;
+  right: 24px;
+  z-index: 70;
+  pointer-events: none;
+  background: #112420e8;
+  color: #d7fa94;
+  border: 1px solid #63866a;
+  border-radius: 7px;
+  padding: 14px;
+  font: 12px/1.8 monospace;
+  white-space: pre-wrap;
+}
+.workbench-footer span {
+  max-width: 55%;
+}
+.modal:has(.workbench-tabs) {
+  max-width: 980px;
+  width: 90vw;
+}
+.menu-links {
+  flex-wrap: wrap;
+}
+@media (max-width: 700px) {
+  .workbench-grid {
+    grid-template-columns: 1fr;
+  }
+  .workbench-tabs button {
+    padding: 8px 12px;
+  }
+  .workbench-content {
+    max-height: 55vh;
+  }
+}
+#toast {
+  z-index: 100;
+  pointer-events: none;
+}
+.catalog-body aside {
+  overflow: auto;
+  max-height: 62vh;
+}
+.menu-links button {
+  white-space: nowrap;
+}

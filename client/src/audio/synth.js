@@ -15,6 +15,36 @@ export class AudioSynth {
     }
     if (this.context.state === 'suspended') await this.context.resume();
   }
+  output(gain) {
+    const c = this.context;
+    if (!this.position) {
+      gain.connect(c.destination);
+      return null;
+    }
+    const panner = c.createPanner();
+    panner.panningModel = 'HRTF';
+    panner.distanceModel = 'inverse';
+    panner.refDistance = 5;
+    panner.maxDistance = 100;
+    panner.rolloffFactor = 1;
+    panner.positionX.value = this.position[0];
+    panner.positionY.value = this.position[1];
+    panner.positionZ.value = this.position[2];
+    gain.connect(panner);
+    panner.connect(c.destination);
+    return panner;
+  }
+  listener(position, forward, up) {
+    const l = this.context?.listener;
+    if (!l) return;
+    for (const [prefix, v] of [
+      ['position', position],
+      ['forward', forward],
+      ['up', up],
+    ])
+      for (const [i, axis] of ['X', 'Y', 'Z'].entries())
+        if (l[prefix + axis]) l[prefix + axis].value = v[i];
+  }
   tone(freq, duration = 0.1, type = 'sine', volume = 0.1, end = 40) {
     const c = this.context;
     if (!c || c.state !== 'running' || this.voices >= 24 || !this.settings.volume) return;
@@ -27,13 +57,14 @@ export class AudioSynth {
     gain.gain.setValueAtTime(volume * this.settings.volume, c.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + duration);
     oscillator.connect(gain);
-    gain.connect(c.destination);
+    const panner = this.output(gain);
     oscillator.start();
     oscillator.stop(c.currentTime + duration);
     oscillator.onended = () => {
       this.voices--;
       oscillator.disconnect();
       gain.disconnect();
+      panner?.disconnect();
     };
   }
   hiss(duration, volume, cutoff) {
@@ -50,7 +81,7 @@ export class AudioSynth {
     gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + duration);
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(c.destination);
+    const panner = this.output(gain);
     source.start();
     source.stop(c.currentTime + duration);
     source.onended = () => {
@@ -58,18 +89,36 @@ export class AudioSynth {
       source.disconnect();
       filter.disconnect();
       gain.disconnect();
+      panner?.disconnect();
     };
   }
-  impact(speed, distance = 0) {
+  impact(speed, position, material = 'box') {
+    this.position = Array.isArray(position) ? position : null;
     const now = performance.now();
     if (now - this.lastImpact < 65 || speed < 2) return;
     this.lastImpact = now;
-    const volume = Math.min(0.32, speed * 0.018) / (1 + distance * 0.15);
-    this.tone(140 + Math.random() * 100, 0.1, 'triangle', volume, 40);
+    const volume = Math.min(0.32, speed * 0.018);
+    const metal = ['barrel', 'explosive_barrel', 'pipe', 'tank', 'car', 'wheel'].includes(material);
+    this.tone(
+      (metal ? 420 : 110) + Math.random() * 100,
+      metal ? 0.18 : 0.1,
+      metal ? 'sine' : 'triangle',
+      volume,
+      metal ? 180 : 40,
+    );
     this.hiss(0.08, volume * 0.8, 1300);
   }
-  event(e, distance) {
-    const attenuation = 1 / (1 + distance * 0.1);
+  event(e) {
+    if (e.type === 'impact') {
+      this.impact(e.speed, e.p, e.material);
+      return;
+    }
+    this.position = e.p || e.entity?.p || null;
+    const attenuation = 1;
+    if (e.type === 'targetHit') this.tone(950, 0.16, 'sine', 0.12, 480);
+    if (e.type === 'dummyHit') this.hiss(0.06, 0.12, 700);
+    if (e.type === 'bounce') this.tone(180, 0.24, 'triangle', 0.14, 700);
+    if (e.type === 'flame') this.hiss(0.16, 0.08, 1600);
     if (e.type === 'shot') {
       this.tone(e.weapon === 'shotgun' ? 75 : 210, 0.13, 'sawtooth', 0.11 * attenuation, 35);
       this.hiss(e.weapon === 'shotgun' ? 0.25 : 0.12, 0.25 * attenuation, 2200);

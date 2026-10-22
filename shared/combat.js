@@ -1,4 +1,5 @@
 import * as C from 'cannon-es';
+import { hitEntity } from './behaviors.js';
 import { WEAPONS } from './weapons.js';
 export function loadout(actor, id, time) {
   actor.loadout ??= {};
@@ -27,7 +28,7 @@ export function shoot(sim, actor, id) {
     reloadWeapon(sim, actor, id);
     return;
   }
-  s.ammo--;
+  if (!def.unlimited) s.ammo--;
   s.next = sim.time + def.interval;
   const st = actor.state,
     origin = st.body.position.vadd(new C.Vec3(0, st.crouched ? 0.25 : 0.65, 0)),
@@ -36,7 +37,7 @@ export function shoot(sim, actor, id) {
       Math.sin(st.pitch),
       -Math.cos(st.yaw) * Math.cos(st.pitch),
     );
-  if (id === 'rocket') {
+  if (id === 'rocket' || id === 'grenade') {
     if (sim.projectiles.size >= 32) {
       const key = sim.projectiles.keys().next().value;
       sim.projectiles.delete(key);
@@ -45,12 +46,38 @@ export function shoot(sim, actor, id) {
     const rocket = {
       id: sim.id('rocket'),
       owner: actor.id,
+      kind: id,
       p: origin.vadd(dir.scale(0.8)),
-      v: dir.scale(38),
-      life: 5,
+      v: dir.scale(id === 'grenade' ? 16 : 38),
+      life: id === 'grenade' ? 2.6 : 5,
     };
     sim.projectiles.set(rocket.id, rocket);
-    sim.emit('projectile', { id: rocket.id, p: rocket.p.toArray(), v: rocket.v.toArray() });
+    sim.emit('projectile', {
+      id: rocket.id,
+      kind: id,
+      p: rocket.p.toArray(),
+      v: rocket.v.toArray(),
+    });
+  } else if (id === 'flamethrower') {
+    const hit = new C.RaycastResult();
+    sim.world.raycastClosest(
+      origin,
+      origin.vadd(dir.scale(9)),
+      { collisionFilterMask: 1, skipBackfaces: true },
+      hit,
+    );
+    const range = hit.hasHit ? hit.distance + 0.8 : 9;
+    for (const e of sim.entities.values()) {
+      const delta = e.body.position.vsub(origin),
+        distance = delta.length();
+      if (distance > range || distance < 0.2) continue;
+      delta.normalize();
+      if (delta.dot(dir) > 0.87) {
+        hitEntity(sim, e, 0.2);
+        if (!e.frozen) e.body.applyImpulse(dir.scale(25));
+      }
+    }
+    sim.emit('flame', { p: origin.vadd(dir.scale(2)).toArray(), dir: dir.toArray() });
   } else
     for (let i = 0; i < def.pellets; i++) {
       const d = dir.vadd(
@@ -61,7 +88,7 @@ export function shoot(sim, actor, id) {
         ),
       );
       d.normalize();
-      const end = origin.vadd(d.scale(140)),
+      const end = origin.vadd(d.scale(def.range || 140)),
         result = new C.RaycastResult();
       sim.world.raycastClosest(
         origin,
@@ -71,6 +98,12 @@ export function shoot(sim, actor, id) {
       );
       if (result.hasHit) {
         const entity = sim.entities.get(result.body.entityId);
+        hitEntity(sim, entity);
+        if (entity && id === 'exploder') {
+          const p = entity.body.position.clone();
+          sim.removeGroup(entity.group);
+          explode(sim, p);
+        }
         if (entity && !entity.frozen) {
           entity.body.applyImpulse(
             d.scale(def.impulse),
@@ -91,7 +124,9 @@ export function explode(sim, p) {
   for (const e of sim.entities.values()) {
     const delta = e.body.position.vsub(p),
       dist = delta.length();
-    if (dist > 9 || e.frozen) continue;
+    if (dist > 9) continue;
+    hitEntity(sim, e, 3);
+    if (e.frozen) continue;
     delta.normalize();
     delta.y += 0.25;
     e.body.applyImpulse(delta.scale((1 - dist / 9) * Math.min(2500, e.body.mass * 30)));
@@ -105,7 +140,15 @@ export function stepProjectiles(sim, dt) {
       hit = new C.RaycastResult();
     sim.world.raycastClosest(r.p, next, { collisionFilterMask: 1, skipBackfaces: true }, hit);
     r.life -= dt;
-    r.v.y -= 2 * dt;
+    r.v.y -= (r.kind === 'grenade' ? 20 : 2) * dt;
+    if (r.kind === 'grenade' && hit.hasHit && r.life > 0) {
+      r.p.copy(hit.hitPointWorld.vadd(hit.hitNormalWorld.scale(0.08)));
+      const dot = r.v.dot(hit.hitNormalWorld);
+      r.v.vsub(hit.hitNormalWorld.scale(2 * dot), r.v);
+      r.v.scale(0.6, r.v);
+      sim.emit('projectileBounce', { id, p: r.p.toArray(), v: r.v.toArray() });
+      continue;
+    }
     if (hit.hasHit || r.life <= 0) {
       explode(sim, hit.hasHit ? hit.hitPointWorld : next);
       sim.projectiles.delete(id);

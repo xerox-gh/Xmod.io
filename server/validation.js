@@ -45,10 +45,13 @@ export function validateInput(value) {
     sprint: !!value.sprint,
     crouch: !!value.crouch,
     activate: !!value.activate,
+    binds: Array.isArray(value.binds)
+      ? [...new Set(value.binds.filter((k) => /^Key[FJKLUIO]$/.test(k)))].slice(0, 8)
+      : [],
   };
 }
 export function parseMessage(data) {
-  if (data.length > 8192) throw new Error('Message is too large');
+  if (data.length > 262144) throw new Error('Message is too large');
   const value = JSON.parse(data.toString());
   if (!value || Array.isArray(value) || typeof value !== 'object' || typeof value.type !== 'string')
     throw new Error('Invalid message');

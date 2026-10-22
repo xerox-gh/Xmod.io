@@ -14,6 +14,7 @@ export class Spawner {
   }
   spawn(type = this.selected) {
     this.game.action({ kind: 'spawn', prop: type, p: this.position(), yaw: this.angle });
+    this.game.spawnMenu?.recent(type);
   }
   click(button) {
     if (button === 0) this.spawn();
@@ -29,6 +30,7 @@ export class Spawner {
       this.preview = makePropMesh(this.selected);
       this.preview.userData.type = this.selected;
       this.preview.traverse((m) => {
+        if (m.isLight) m.visible = false;
         if (m.isMesh) {
           m.material.transparent = true;
           m.material.opacity = 0.3;

@@ -1,9 +1,12 @@
 import * as T from 'three';
+import { makeExtraWeaponModels } from '../weapons/models.js';
 // Original block-built tool silhouette, with an emissive core and a world-space beam.
 export class ViewModel {
   constructor(game) {
     this.game = game;
     this.root = new T.Group();
+    this.body = new T.Group();
+    this.root.add(this.body);
     game.view.camera.add(this.root);
     game.view.scene.add(game.view.camera);
     const metal = new T.MeshStandardMaterial({ color: '#34474c', roughness: 0.6 }),
@@ -18,13 +21,18 @@ export class ViewModel {
       const mesh = new T.Mesh(new T.BoxGeometry(...s), m);
       mesh.position.set(...p);
       mesh.castShadow = false;
-      this.root.add(mesh);
+      this.body.add(mesh);
     };
     part([0.28, 0.25, 0.65], [0, 0, 0], metal);
     part([0.19, 0.14, 0.22], [0, 0.04, -0.35], light);
     part([0.12, 0.32, 0.15], [0, -0.25, 0.14], metal);
     part([0.12, 0.12, 0.4], [0, 0.2, -0.02], this.core);
     for (const x of [-0.17, 0.17]) part([0.06, 0.08, 0.55], [x, 0, -0.22], light);
+    this.specials = makeExtraWeaponModels();
+    for (const mesh of Object.values(this.specials)) {
+      mesh.visible = false;
+      this.root.add(mesh);
+    }
     this.root.position.set(0.37, -0.32, -0.75);
     this.root.rotation.y = -0.1;
     this.beam = new T.Line(
@@ -36,7 +44,10 @@ export class ViewModel {
   }
   update(dt) {
     const g = this.game;
-    this.root.visible = g.input.locked && !g.vehicleId;
+    this.root.visible = g.input.locked && !g.vehicleId && g.cameraRig?.mode === 'first';
+    this.body.visible = !this.specials[g.toolId];
+    for (const [id, model] of Object.entries(this.specials)) model.visible = id === g.toolId;
+    this.root.rotation.z = g.toolId === 'crowbar' ? -g.player.recoil * 7 : 0;
     this.root.position.y =
       -0.32 +
       Math.sin(performance.now() * 0.006) *

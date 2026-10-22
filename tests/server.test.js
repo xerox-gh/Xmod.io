@@ -83,7 +83,7 @@ test('two clients share authoritative props, movement, chat and owner moderation
 });
 test('invalid messages, malformed movement and message buckets are bounded', () => {
   assert.throws(() => parseMessage(Buffer.from('[]')));
-  assert.throws(() => parseMessage(Buffer.alloc(9000)));
+  assert.throws(() => parseMessage(Buffer.alloc(262145)));
   assert.throws(() => validateInput({ yaw: Infinity, pitch: 0 }));
   const input = validateInput({ yaw: 99, pitch: 99, forward: 100, right: -100 });
   assert.equal(input.forward, 1);
@@ -93,4 +93,70 @@ test('invalid messages, malformed movement and message buckets are bounded', () 
   assert.ok(bucket.take());
   assert.ok(bucket.take());
   assert.equal(bucket.take(), false);
+});
+
+test('server shares build imports, map changes and time freeze with owner validation', async () => {
+  const server = createGameServer(),
+    address = await server.listen(0, '127.0.0.1'),
+    url = `ws://127.0.0.1:${address.port}/ws`,
+    a = client(url),
+    b = client(url);
+  try {
+    await Promise.all([a.open(), b.open()]);
+    a.send({ type: 'join', protocol: PROTOCOL, name: 'Owner', room: 'expansion' });
+    const wa = await a.wait('welcome');
+    b.send({ type: 'join', protocol: PROTOCOL, name: 'Peer', room: 'expansion' });
+    await b.wait('welcome');
+    b.send({ type: 'action', action: { kind: 'map', map: 'city' } });
+    assert.match((await b.wait('error')).message, /owner/);
+    a.send({ type: 'action', action: { kind: 'map', map: 'hills' } });
+    await b.wait('event', (m) => m.event.type === 'map' && m.event.map === 'hills');
+    const room = server.rooms.get('expansion');
+    assert.equal(room.sim.world.map.id, 'hills');
+    assert.equal(room.players.get(wa.id).state.body.world, room.sim.world);
+    a.send({ type: 'action', action: { kind: 'time', value: 0 } });
+    await b.wait('event', (m) => m.event.type === 'time' && m.event.value === 0);
+    const p = room.players.get(wa.id).state.body.position.toArray();
+    a.send({ type: 'input', input: { yaw: 0, pitch: 0, forward: 1 } });
+    await new Promise((r) => setTimeout(r, 100));
+    assert.deepEqual(room.players.get(wa.id).state.body.position.toArray(), p);
+    const build = {
+      format: 'xmod-build',
+      version: 1,
+      map: 'hills',
+      constraints: [],
+      entities: Array.from({ length: 60 }, (_, i) => ({
+        id: `source${i}`,
+        type: 'box',
+        group: `source${i}`,
+        owner: 'local',
+        p: [i % 10, 3, Math.floor(i / 10)],
+        q: [0, 0, 0, 1],
+        scale: 1,
+        color: '#a4d5c4',
+        frozen: true,
+        behavior: {},
+      })),
+    };
+    assert.ok(JSON.stringify(build).length > 8192);
+    a.send({ type: 'action', action: { kind: 'loadBuild', build } });
+    await b.wait('snapshot', (m) => m.props.length === 60);
+    assert.equal([...room.sim.entities.values()].filter((e) => e.owner === wa.id).length, 60);
+    b.send({
+      type: 'action',
+      action: {
+        kind: 'loadBuild',
+        build: { ...build, entities: [...build.entities, { ...build.entities[0], id: 'extra' }] },
+      },
+    });
+    assert.match((await b.wait('error')).message, /60/);
+    a.send({ type: 'action', action: { kind: 'clear' } });
+    await b.wait('snapshot', (m) => m.props.length === 0);
+    a.send({ type: 'action', action: { kind: 'undo' } });
+    await b.wait('snapshot', (m) => m.props.length === 60);
+  } finally {
+    a.socket.terminate();
+    b.socket.terminate();
+    await server.close();
+  }
 });
