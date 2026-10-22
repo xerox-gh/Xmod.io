@@ -33,6 +33,7 @@ async function play(p = page) {
   const button = p.locator('#play');
   if (await button.isVisible()) await button.click();
   await expect.poll(() => p.evaluate(() => !!document.pointerLockElement)).toBe(true);
+  await expect(p.locator('#game')).toHaveAttribute('data-pointer-locked', 'true');
 }
 async function command(text, p = page) {
   await p.keyboard.press('Backquote');

@@ -6,6 +6,27 @@ An original, browser based physics sandbox. Build ridiculous machines, pose join
 
 ## Run it
 
+### Play on GitHub Pages
+
+The static game can be published at **https://xerox-gh.github.io/Xmod.io/**. Solo play runs entirely in the browser, with no Node server required by players.
+
+1. In this repository's **Settings → Pages**, set **Source** to **GitHub Actions** once.
+2. The **Deploy Xmod.io to GitHub Pages** workflow builds and publishes every push to `main`. It can also be run manually from the Actions tab.
+3. Once the deploy job succeeds, open the Pages URL above and click **Enter playground**.
+
+`npm run build:pages` produces the uploadable `dist/` directory. Asset paths are relative, so they work at the repository's `/Xmod.io/` subpath. The static build starts in solo mode and does not send requests to a nonexistent multiplayer API.
+
+GitHub Pages cannot run the Node/WebSocket server. To add multiplayer, host `server/` on a Node host with HTTPS/WebSocket support and enter that origin in the game's **Multiplayer server** field. Set the server's `ALLOWED_ORIGINS` to `https://xerox-gh.github.io`. Optionally set the repository Actions variable `VITE_SERVER_URL` to that HTTPS server origin before rebuilding, to provide it by default. No server is needed for solo tools, physics, ragdolls, weapons or vehicles.
+
+To check the exact static build locally:
+
+```sh
+npm run build:pages
+npm run test:pages
+```
+
+### Run locally
+
 Use **Node.js 22.12+ or 24 LTS** and a desktop browser with WebGL 2 and pointer lock.
 
 ```sh

@@ -2,6 +2,7 @@ import * as C from 'cannon-es';
 import { MSG, PROTOCOL } from '../../../shared/constants.js';
 import { Track } from './interpolation.js';
 import { Avatars } from './avatars.js';
+import { normalizeServerUrl } from './endpoint.js';
 export class NetworkClient {
   constructor(game) {
     this.game = game;
@@ -13,9 +14,26 @@ export class NetworkClient {
     this.pingClock = 0;
     this.latency = 0;
     this.roomName = '';
-    this.base = import.meta.env.VITE_SERVER_URL || location.origin;
+    let saved = '';
+    try {
+      saved = localStorage.getItem('xmod.server') || '';
+    } catch {}
+    this.base =
+      saved ||
+      import.meta.env.VITE_SERVER_URL ||
+      (import.meta.env.MODE === 'pages' ? '' : location.origin);
+  }
+  setServer(value) {
+    const next = normalizeServerUrl(value, location.protocol);
+    if (next === this.base) return;
+    if (this.connected) this.disconnect();
+    this.base = next;
+    try {
+      localStorage.setItem('xmod.server', next);
+    } catch {}
   }
   async rooms() {
+    if (!this.base) throw new Error('Add a multiplayer server URL first.');
     const response = await fetch(new URL('/api/rooms', this.base), {
       signal: AbortSignal.timeout(5000),
     });
@@ -23,6 +41,7 @@ export class NetworkClient {
     return response.json();
   }
   connect(name, room) {
+    if (!this.base) return Promise.reject(new Error('Add a multiplayer server URL first.'));
     if (this.socket) this.disconnect();
     return new Promise((resolve, reject) => {
       const url = new URL('/ws', this.base);
@@ -59,7 +78,9 @@ export class NetworkClient {
       socket.onerror = () => {
         if (!welcomed) {
           clearTimeout(timeout);
-          reject(new Error('Cannot reach the server. Start npm run server.'));
+          reject(
+            new Error('Cannot reach that multiplayer server. Check its address and try again.'),
+          );
         }
       };
       socket.onclose = (event) => {

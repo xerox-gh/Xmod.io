@@ -10,9 +10,14 @@ export class Input {
     this.dx = 0;
     this.dy = 0;
     document.addEventListener('pointerlockchange', () => {
-      this.clear();
+      // resume() clears stale input before requesting the lock. Clearing here on
+      // entry would erase a fresh keypress arriving before this queued event.
       if (this.locked) onLock?.();
-      else onUnlock?.();
+      else {
+        this.clear();
+        onUnlock?.();
+      }
+      canvas.dataset.pointerLocked = String(this.locked);
     });
     document.addEventListener('keydown', (e) => {
       if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
