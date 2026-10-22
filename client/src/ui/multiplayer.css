@@ -1,0 +1,119 @@
+.chat {
+  position: absolute;
+  left: 26px;
+  top: 115px;
+  width: 330px;
+  max-width: 70vw;
+  font-size: 11px;
+  color: #edf3e6;
+}
+.chat-log {
+  max-height: 160px;
+  overflow: auto;
+  text-shadow: 0 1px 5px #000b;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: thin;
+}
+.chat-log strong {
+  color: var(--lime);
+}
+.chat-log > div {
+  overflow-wrap: anywhere;
+  background: #1a323335;
+  padding: 6px 9px;
+  border-radius: 4px;
+}
+.chat form {
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+  pointer-events: auto;
+}
+.chat input {
+  background: #1b3233ef;
+  border: 1px solid #d7fa9470;
+  border-radius: 4px;
+  padding: 10px;
+  color: #edf3e6;
+  min-width: 0;
+  flex: 1;
+}
+.chat button {
+  background: var(--lime);
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 0 12px;
+  font-size: 10px;
+}
+.mp-identity {
+  display: flex;
+  gap: 18px;
+}
+.mp-identity label {
+  flex: 1;
+  min-width: 0;
+  font: 9px monospace;
+  letter-spacing: 1px;
+  color: #b8ccad;
+}
+.mp-identity input {
+  display: block;
+  width: 100%;
+  border: 1px solid #fff3;
+  background: #152c2d;
+  color: var(--cream);
+  padding: 13px;
+  margin-top: 10px;
+  border-radius: 5px;
+  font:
+    13px Arial,
+    sans-serif;
+}
+.mp-actions {
+  display: flex;
+  gap: 9px;
+  margin: 18px 0 25px;
+}
+.mp-actions button {
+  background: #ffffff10;
+  border: 1px solid #fff2;
+  border-radius: 6px;
+  padding: 11px 14px;
+  color: var(--cream);
+  font-size: 12px;
+}
+.mp-actions .primary {
+  background: var(--lime);
+  color: var(--ink);
+  font-weight: 700;
+}
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.room-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff09;
+  padding: 18px;
+  border: 1px solid #fff2;
+  border-radius: 6px;
+  color: var(--cream);
+  text-align: left;
+}
+.room-row strong {
+  font-size: 14px;
+}
+.room-row > span {
+  font: 10px monospace;
+  color: #b1c3ad;
+}
+.mp-note {
+  font-size: 10px;
+  margin-top: 25px;
+}
