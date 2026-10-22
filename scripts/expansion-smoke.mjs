@@ -70,13 +70,11 @@ try {
   await page.locator('#paste-build').click();
   expect(decode(await code()).entities.length).toBe(7);
   await page.locator('#clear-build').click();
-  await page
-    .locator('#load-build')
-    .setInputFiles({
-      name: 'build.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(saved),
-    });
+  await page.locator('#load-build').setInputFiles({
+    name: 'build.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(saved),
+  });
   await expect.poll(async () => decode(await code()).entities.length).toBe(7);
   await back();
   // Reset the view, then spawn a fresh barrel on the crosshair while frozen.
@@ -117,6 +115,20 @@ try {
   await expect(page.locator('#body-count')).toContainText('1 /');
   await page.keyboard.press('KeyG');
   await expect(page.locator('.selection-overlay')).toBeVisible();
+  await expect(page.locator('#game')).toHaveAttribute('data-pointer-locked', 'false');
+  await page.evaluate(async () => {
+    const { game: g } = await import('/src/main.js');
+    const e = [...g.sim.entities.values()].at(-1),
+      p = g.view.camera.position,
+      dx = e.body.position.x - p.x,
+      dy = e.body.position.y - p.y,
+      dz = e.body.position.z - p.z;
+    g.player.yaw = Math.atan2(-dx, -dz);
+    g.player.pitch = Math.asin(dy / Math.hypot(dx, dy, dz));
+    g.input.dx = g.input.dy = 0;
+    g.player.updateCamera(0);
+    g.view.camera.updateMatrixWorld(true);
+  });
   await page.mouse.move(100, 180);
   await page.mouse.down();
   await page.mouse.move(1340, 850, { steps: 4 });
@@ -160,6 +172,9 @@ try {
   await page.mouse.up();
   await expect(page.locator('#body-count')).toContainText('1 /');
   await page.keyboard.press('F5');
+  await expect
+    .poll(() => page.evaluate(async () => (await import('/src/main.js')).game.cameraRig.mode))
+    .toBe('third');
   await work('capture');
   await expect(page.getByLabel('Camera mode')).toHaveValue('third');
   await page.getByLabel('Camera mode').selectOption('free');
@@ -175,13 +190,11 @@ try {
   const replay = await replayDownload;
   const replayFile = await readFile(await replay.path(), 'utf8');
   expect(JSON.parse(replayFile).frames.length).toBeGreaterThan(2);
-  await page
-    .locator('#load-replay')
-    .setInputFiles({
-      name: 'replay.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(replayFile),
-    });
+  await page.locator('#load-replay').setInputFiles({
+    name: 'replay.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(replayFile),
+  });
   await page.locator('#play-replay').click();
   await locked();
   await page.waitForTimeout(250);
