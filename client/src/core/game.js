@@ -19,6 +19,7 @@ import { Spawner } from '../tools/spawner.js';
 import { SpawnMenu } from '../ui/spawn-menu.js';
 import { Menus } from '../ui/menus.js';
 import { HUD } from '../ui/hud.js';
+import { WEAPONS } from '../../../shared/weapons.js';
 import { HOTBAR } from '../../../shared/constants.js';
 import { Tools } from '../tools/index.js';
 import { executeAction } from '../../../shared/actions.js';
@@ -183,6 +184,7 @@ export class Game {
       this.toast(error.message);
       this.console?.print(error.message);
       console.warn('Sandbox action failed:', error);
+      return false;
     }
   }
   frame(dt, time) {
@@ -209,12 +211,16 @@ export class Game {
       }
       for (let i = 0; i < 9; i++) if (input.pressed(`Digit${i + 1}`)) this.selectTool(i);
       this.tools?.update(dt);
+      this.player.aimScale = this.weapons.aiming
+        ? Math.min(1, WEAPONS[this.toolId].aimFov / this.settings.fov)
+        : 1;
       this.player.sample();
     }
     if (!input.locked) {
       input.clear();
       this.player.packet = { yaw: this.player.yaw, pitch: this.player.pitch };
     }
+    this.player.zoomFov = this.weapons.aiming ? WEAPONS[this.toolId].aimFov : null;
     this.player.updateCamera(dt);
     if (!this.started) {
       this.view.camera.position.set(18, 14, 26);

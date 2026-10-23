@@ -1,3 +1,4 @@
+import { WEAPONS } from '../../../shared/weapons.js';
 import { WEAPON_NAMES } from './workbench.js';
 import { PROPS } from '../../../shared/props.js';
 import { HOTBAR, TOOL_MODES } from '../../../shared/constants.js';
@@ -6,7 +7,7 @@ export class HUD {
     this.game = game;
     this.el = document.createElement('div');
     this.el.className = 'hud';
-    this.el.innerHTML = `<div class="game-brand"><b class="brand-symbol">×</b><strong>Xmod<span>.io</span></strong><span class="world-tag">FLATGRASS</span></div><div class="performance"><i></i><span id="status-label">SOLO PLAYGROUND</span><span id="fps">60 FPS</span></div><div class="crosshair"><i></i><i></i></div><div id="target-label"></div><div class="quick-guide"><span><kbd>B</kbd> Workbench</span><span><kbd>G</kbd> Select</span><span><kbd>Q</kbd> Objects</span><span><kbd>V</kbd> Noclip</span><span><kbd>Z</kbd> Undo</span><span><kbd>E</kbd> Interact</span></div><div class="tool-info"><span class="eyebrow" id="tool-mode">BUILD / EXPERIMENT / REPEAT</span><h3 id="tool-name">Physics gun</h3><p id="tool-hint"></p></div><div class="hotbar">${HOTBAR.map((t, i) => `<button title="${t.name}" data-slot="${i}"><kbd>${i + 1}</kbd><span class="slot-icon">${['⌁', '⚒', '▧', '♟', '⌐', '╒', '↗', '◈', '▣'][i]}</span><small>${t.name}</small></button>`).join('')}</div><div class="world-info"><span id="body-count">0 / 200 PROPS</span><span id="movement-status">ON FOOT</span></div><div id="toast" role="status"></div>`;
+    this.el.innerHTML = `<div class="game-brand"><b class="brand-symbol">×</b><strong>Xmod<span>.io</span></strong><span class="world-tag">FLATGRASS</span></div><div class="performance"><i></i><span id="status-label">SOLO PLAYGROUND</span><span id="fps">60 FPS</span></div><div class="scope-overlay" hidden><div class="scope-reticle"></div><span>LONGSHOT · 4×</span></div><div class="crosshair"><i></i><i></i></div><div id="target-label"></div><div class="quick-guide"><span><kbd>B</kbd> Workbench</span><span><kbd>G</kbd> Select</span><span><kbd>Q</kbd> Objects / guns</span><span><kbd>V</kbd> Noclip</span><span><kbd>Z</kbd> Undo</span><span><kbd>E</kbd> Interact</span></div><div class="tool-info"><span class="eyebrow" id="tool-mode">BUILD / EXPERIMENT / REPEAT</span><h3 id="tool-name">Physics gun</h3><p id="tool-hint"></p></div><div class="hotbar">${HOTBAR.map((t, i) => `<button title="${t.name}" data-slot="${i}"><kbd>${i + 1}</kbd><span class="slot-icon">${['⌁', '⚒', '▧', '♟', '⌐', '╒', '↗', '◈', '▣'][i]}</span><small>${t.name}</small></button>`).join('')}</div><div class="world-info"><span id="body-count">0 / 200 PROPS</span><span id="movement-status">ON FOOT</span></div><div id="toast" role="status"></div>`;
     root.append(this.el);
     root.append(this.el.querySelector('#toast'));
     this.el
@@ -31,7 +32,16 @@ export class HUD {
         : g.slot === 8
           ? PROPS[g.vehicleChoice].name
           : tool.name;
-    this.el.querySelector('#tool-hint').textContent = tool.hint;
+    const weapon = WEAPONS[g.toolId];
+    const scoped = !!(g.weapons.aiming && weapon?.scope);
+    this.el.querySelector('.scope-overlay').hidden = !scoped;
+    this.el.querySelector('.crosshair').hidden = scoped;
+    this.el.querySelector('#tool-hint').textContent = weapon?.gun
+      ? `${weapon.automatic ? 'Hold' : 'Click'} LMB fire · RMB ${weapon.scope ? 'scope' : 'aim'} · R reload · Q weapons`
+      : tool.hint;
+    const slot = this.el.querySelector('[data-slot="4"]');
+    slot.querySelector('small').textContent = WEAPON_NAMES[g.weaponChoice];
+    slot.title = WEAPON_NAMES[g.weaponChoice];
     this.el.querySelector('#tool-mode').textContent =
       g.toolId === 'toolgun'
         ? `MODE / ${TOOL_MODES[g.toolMode]}`

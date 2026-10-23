@@ -1,3 +1,4 @@
+import { renderWeaponCatalog } from './weapon-catalog.js';
 import { publicProps, CATEGORIES } from '../../../shared/props.js';
 export class SpawnMenu {
   constructor(game, root) {
@@ -18,13 +19,14 @@ export class SpawnMenu {
     this.el = document.createElement('section');
     this.el.className = 'overlay spawn-overlay';
     this.el.hidden = true;
-    this.el.innerHTML = `<div class="catalog"><header><div><span class="eyebrow">THE OBJECT LIBRARY</span><h2>A little bit of everything.</h2></div><button class="icon-button close-catalog" aria-label="Close spawn menu">×</button></header><div class="catalog-body"><aside>${['All props', 'Favorites', 'Recent', ...CATEGORIES.filter((c) => c !== 'All props')].map((c, i) => `<button class="category ${i ? '' : 'active'}" data-category="${c}">${c}<span>↗</span></button>`).join('')}<p class="muted">Pick an object.<br>Make something weird.</p></aside><div class="catalog-content"><input id="prop-search" placeholder="Search props…" aria-label="Search props"><div id="prop-grid" class="prop-grid"></div></div></div><footer><span>Q / ESC to close</span><span>Click a card to spawn · 200 body limit</span></footer></div>`;
+    this.el.innerHTML = `<div class="catalog"><header><div><span class="eyebrow">THE OBJECT LIBRARY</span><h2>A little bit of everything.</h2></div><button class="icon-button close-catalog" aria-label="Close spawn menu">×</button></header><div class="catalog-body"><aside>${['All props', 'Weapons', 'Favorites', 'Recent', ...CATEGORIES.filter((c) => c !== 'All props')].map((c, i) => `<button class="category ${i ? '' : 'active'}" data-category="${c}">${c}<span>↗</span></button>`).join('')}<p class="muted">Pick an object.<br>Make something weird.</p></aside><div class="catalog-content"><input id="prop-search" placeholder="Search props…" aria-label="Search props and weapons"><div id="prop-grid" class="prop-grid"></div></div></div><footer><span>Q / ESC to close</span><span>Click a card to spawn · 200 body limit</span></footer></div>`;
     root.append(this.el);
     this.el.querySelector('.close-catalog').onclick = () => this.close();
     this.el.querySelectorAll('[data-category]').forEach(
       (b) =>
         (b.onclick = () => {
           this.category = b.dataset.category;
+          if (this.category === 'Weapons') this.el.querySelector('input').value = '';
           this.el
             .querySelectorAll('.category')
             .forEach((c) => c.classList.toggle('active', c === b));
@@ -46,6 +48,16 @@ export class SpawnMenu {
   render() {
     const query = this.el.querySelector('input').value.toLowerCase(),
       grid = this.el.querySelector('#prop-grid');
+    this.el.querySelector('input').placeholder =
+      this.category === 'Weapons' ? 'Search weapons…' : 'Search props…';
+    this.el.querySelector('footer span:last-child').textContent =
+      this.category === 'Weapons'
+        ? 'Click to equip · LMB fire · RMB aim · R reload'
+        : 'Click a card to spawn · 200 body limit';
+    if (this.category === 'Weapons') {
+      renderWeaponCatalog(this, grid, query);
+      return;
+    }
     grid.innerHTML =
       publicProps
         .filter(
@@ -97,7 +109,14 @@ export class SpawnMenu {
     this.recents = [id, ...this.recents.filter((x) => x !== id)].slice(0, 30);
     this.persist();
   }
-  open() {
+  open(category) {
+    if (category) {
+      this.category = category;
+      this.el.querySelector('input').value = '';
+    }
+    this.el
+      .querySelectorAll('[data-category]')
+      .forEach((b) => b.classList.toggle('active', b.dataset.category === this.category));
     this.render();
     this.game.overlay = 'spawn';
     this.game.input.unlock();

@@ -11,15 +11,7 @@ import {
   decodeBuild,
 } from '../builds/files.js';
 import { saveSettings } from '../core/settings.js';
-const names = {
-  pistol: 'Pulse pistol',
-  shotgun: 'Scatter blaster',
-  rocket: 'Rocket launcher',
-  crowbar: 'Crowbar',
-  grenade: 'Grenade',
-  flamethrower: 'Flamethrower',
-  exploder: 'Prop exploder',
-};
+const names = Object.fromEntries(Object.entries(WEAPONS).map(([id, def]) => [id, def.name]));
 const options = (items, current) =>
   items
     .map(
@@ -190,8 +182,7 @@ export class Workbench {
         g.action({ kind: 'motorConfig', id: this.target, ...g.construction });
       });
       on('equip-weapon', () => {
-        g.weaponChoice = root.querySelector('#weapon-choice').value;
-        g.selectTool(4);
+        g.weapons.equip(root.querySelector('#weapon-choice').value);
         g.resume();
       });
       on('equip-vehicle', () => {

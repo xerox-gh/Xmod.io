@@ -4,7 +4,7 @@ import { WEAPONS } from './weapons.js';
 export function loadout(actor, id, time) {
   actor.loadout ??= {};
   const def = WEAPONS[id];
-  if (!def) throw new Error('Unknown weapon');
+  if (!Object.hasOwn(WEAPONS, id)) throw new Error('Unknown weapon');
   const state = (actor.loadout[id] ??= { ammo: def.capacity, next: 0, reloading: 0 });
   if (state.reloading && time >= state.reloading) {
     state.ammo = def.capacity;
@@ -20,10 +20,15 @@ export function reloadWeapon(sim, actor, id) {
     sim.emit('reload', { owner: actor.id, weapon: id, duration: def.reload });
   }
 }
-export function shoot(sim, actor, id) {
+export function shoot(sim, actor, id, aiming = false) {
   const def = WEAPONS[id],
     s = loadout(actor, id, sim.time);
-  if (s.reloading || sim.time < s.next) throw new Error('Weapon is not ready');
+  if (s.reloading || sim.time + 1e-6 < s.next) {
+    // A held trigger can arrive just before the next server tick. Ignore it
+    // without consuming ammo or flooding the builder with error toasts.
+    if (def.automatic) return false;
+    throw new Error('Weapon is not ready');
+  }
   if (s.ammo <= 0) {
     reloadWeapon(sim, actor, id);
     return;
@@ -78,13 +83,14 @@ export function shoot(sim, actor, id) {
       }
     }
     sim.emit('flame', { p: origin.vadd(dir.scale(2)).toArray(), dir: dir.toArray() });
-  } else
+  } else {
+    const spread = def.spread * (aiming && def.aimFov ? 0.35 : 1);
     for (let i = 0; i < def.pellets; i++) {
       const d = dir.vadd(
         new C.Vec3(
-          (Math.random() - 0.5) * def.spread,
-          (Math.random() - 0.5) * def.spread,
-          (Math.random() - 0.5) * def.spread,
+          (Math.random() - 0.5) * spread,
+          (Math.random() - 0.5) * spread,
+          (Math.random() - 0.5) * spread,
         ),
       );
       d.normalize();
@@ -118,7 +124,9 @@ export function shoot(sim, actor, id) {
         hit: result.hasHit,
       });
     }
+  }
   sim.emit('shot', { owner: actor.id, weapon: id, ammo: s.ammo, p: origin.toArray() });
+  return true;
 }
 export function explode(sim, p) {
   for (const e of sim.entities.values()) {

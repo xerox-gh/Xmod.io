@@ -1,48 +1,62 @@
 import { WEAPONS } from '../../../shared/weapons.js';
-import pistol from './pistol.js';
-import shotgun from './shotgun.js';
-import rocket from './rocket.js';
 export class Weapons {
   constructor(game) {
     this.game = game;
-    this.config = {
-      pistol,
-      shotgun,
-      rocket,
-      crowbar: { recoil: 0.035, flash: '#a4d4d4' },
-      grenade: { recoil: 0.04, flash: '#e5c68b' },
-      flamethrower: { recoil: 0.008, flash: '#ff863b' },
-      exploder: { recoil: 0.05, flash: '#fa926d' },
-    };
+    this.config = WEAPONS;
     this.states = new Map();
     this.time = 0;
+    this.kick = 0;
   }
   has(id) {
-    return !!WEAPONS[id];
+    return Object.hasOwn(WEAPONS, id);
+  }
+  get aiming() {
+    const g = this.game;
+    return !!(
+      this.has(g.toolId) &&
+      WEAPONS[g.toolId].aimFov &&
+      g.input.locked &&
+      !g.overlay &&
+      !g.recorder?.playing &&
+      g.cameraRig?.mode === 'first' &&
+      g.input.buttons.has(2) &&
+      !g.player.state.vehicleId
+    );
   }
   state(id) {
+    if (!this.has(id)) throw new Error('Unknown weapon');
     if (!this.states.has(id))
-      this.states.set(id, { ammo: WEAPONS[id].capacity, next: 0, reload: 0 });
+      this.states.set(id, { ammo: WEAPONS[id].capacity, next: 0, reload: 0, reloadStart: 0 });
     return this.states.get(id);
+  }
+  equip(id) {
+    if (!this.has(id)) return;
+    this.game.weaponChoice = id;
+    this.game.selectTool(4);
+    this.game.toast(`${WEAPONS[id].name} equipped`);
   }
   fire(id) {
     if (!this.has(id)) return;
-    const s = this.state(id);
+    const s = this.state(id),
+      def = WEAPONS[id];
     if (this.time < s.next || s.reload) return;
     if (s.ammo <= 0) {
       this.reload(id);
       return;
     }
-    if (!WEAPONS[id].unlimited) s.ammo--;
-    s.next = this.time + WEAPONS[id].interval;
-    this.game.action({ kind: 'fire', weapon: id });
-    this.game.player.recoil += this.config[id].recoil;
-    this.game.effects?.muzzle(this.config[id].flash);
+    const accepted = this.game.action({ kind: 'fire', weapon: id, aim: this.aiming });
+    if (accepted === false) return;
+    if (!def.unlimited) s.ammo--;
+    s.next = this.time + def.interval;
+    this.game.player.recoil += def.recoil;
+    this.kick = Math.min(0.14, this.kick + 0.035);
+    this.game.effects?.muzzle(def.flash);
   }
   reload(id) {
     if (!this.has(id)) return;
     const s = this.state(id);
     if (!s.reload && s.ammo < WEAPONS[id].capacity) {
+      s.reloadStart = this.time;
       s.reload = this.time + WEAPONS[id].reload;
       this.game.action({ kind: 'reload', weapon: id });
       this.game.toast('Reloading…');
@@ -53,8 +67,16 @@ export class Weapons {
     const s = this.state(id);
     return s.reload ? 'RELOADING' : `${s.ammo} / ${WEAPONS[id].capacity}`;
   }
+  reloadProgress(id) {
+    if (!this.has(id)) return 0;
+    const s = this.state(id);
+    return s.reload
+      ? Math.max(0, Math.min(1, (this.time - s.reloadStart) / WEAPONS[id].reload))
+      : 0;
+  }
   update(dt) {
     this.time += dt;
+    this.kick *= Math.exp(-18 * dt);
     for (const [id, s] of this.states)
       if (s.reload && this.time >= s.reload) {
         s.reload = 0;

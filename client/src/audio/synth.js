@@ -1,3 +1,4 @@
+import { GUN_SOUNDS } from './weapon-sounds.js';
 // Tiny WebAudio synthesizer. Buffers and voices are bounded; no downloaded sounds.
 export class AudioSynth {
   constructor(settings) {
@@ -120,8 +121,9 @@ export class AudioSynth {
     if (e.type === 'bounce') this.tone(180, 0.24, 'triangle', 0.14, 700);
     if (e.type === 'flame') this.hiss(0.16, 0.08, 1600);
     if (e.type === 'shot') {
-      this.tone(e.weapon === 'shotgun' ? 75 : 210, 0.13, 'sawtooth', 0.11 * attenuation, 35);
-      this.hiss(e.weapon === 'shotgun' ? 0.25 : 0.12, 0.25 * attenuation, 2200);
+      const [pitch, tail, cutoff, volume] = GUN_SOUNDS[e.weapon] || GUN_SOUNDS.pistol;
+      this.tone(pitch, Math.min(0.22, tail), 'sawtooth', volume * 0.45, 35);
+      this.hiss(tail, volume, cutoff);
     }
     if (e.type === 'explosion') {
       this.tone(85, 0.6, 'sine', 0.4 * attenuation, 15);

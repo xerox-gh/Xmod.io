@@ -1,3 +1,4 @@
+import { WEAPONS } from '../../../shared/weapons.js';
 import { PhysicsGun } from './physgun.js';
 import { GravityGun } from './gravitygun.js';
 import { ViewModel } from './viewmodel.js';
@@ -50,7 +51,7 @@ export class Tools {
         if (g.toolId === 'toolgun') this.toolgun?.cycle();
         else g.weapons?.reload(g.toolId);
       }
-      if (g.toolId === 'flamethrower' && input.buttons.has(0)) g.weapons.fire('flamethrower');
+      if (WEAPONS[g.toolId]?.automatic && input.buttons.has(0)) g.weapons.fire(g.toolId);
       this.toolgun?.tick(dt);
     });
   }

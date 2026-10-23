@@ -51,6 +51,20 @@ Choose **Multiplayer**, enter a name and a room ID, and create a room. A second 
 - `PORT` changes the Node port. If you change it in development, update the proxy target in `vite.config.js` too.
 - For a separately hosted client, set `VITE_SERVER_URL` **before building**. Set Node's `ALLOWED_ORIGINS` to a comma separated list of your client origins. See `.env.example`. Node reads environment variables from your shell; it does not automatically load an `.env` file.
 
+## Guns update (v0.3)
+
+Click **Weapons** on the main menu, or use **Q → Weapons**, to equip a gun into slot **5**. The same choices remain in **B → Tools → Weapon**. Hold LMB with automatic guns, click LMB for single shots, hold RMB to aim (sniper scope), and press R to reload. Each gun has an original procedural model, recoil, a reload animation, muzzle flash, spatial sound and force on props. Scoped aiming lowers mouse sensitivity and improves shot precision. Existing pistols, shotguns and launchers also have distinct models.
+
+| Gun             | Magazine | Fire mode   | Reload | Specialty                              |
+| --------------- | -------- | ----------- | ------ | -------------------------------------- |
+| Spark SMG       | 32       | Automatic   | 1.5 s  | Fast, light bursts                     |
+| Ranger rifle    | 30       | Automatic   | 1.8 s  | Balanced range and accuracy            |
+| Longshot sniper | 5        | Single shot | 2.5 s  | Scope, long reach, strong prop impulse |
+| Iron revolver   | 6        | Single shot | 1.9 s  | Heavy single-shot impulse              |
+| Bulwark LMG     | 80       | Automatic   | 3 s    | Long sustained fire                    |
+
+Ammo, fire cadence, raycasts and impulses remain server-authoritative online. Guns interact with the sandbox's props, reactive targets, explosive barrels and jointed dummies; player health/PvP damage is still outside the current game.
+
 ## What's new in v0.2
 
 Open **B → Workbench** from the playground, or click **Workbench** on the main menu.
@@ -215,6 +229,7 @@ npm run build
 npx playwright install chromium
 npm run test:browser
 npm run test:expansion
+npm run test:guns
 npm run build:pages
 npm run test:pages
 ```

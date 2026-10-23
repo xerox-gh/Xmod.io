@@ -9,14 +9,16 @@ export class PlayerController {
     this.yaw = 0;
     this.pitch = -0.08;
     this.recoil = 0;
+    this.aimScale = 1;
+    this.zoomFov = null;
   }
   sample() {
     const input = this.input;
     if (!(input.down('KeyE') && this.rotating)) {
-      this.yaw -= input.dx * 0.002 * this.settings.sensitivity;
+      this.yaw -= input.dx * 0.002 * this.settings.sensitivity * this.aimScale;
       this.pitch = Math.max(
         -1.5,
-        Math.min(1.5, this.pitch - input.dy * 0.002 * this.settings.sensitivity),
+        Math.min(1.5, this.pitch - input.dy * 0.002 * this.settings.sensitivity * this.aimScale),
       );
     }
     input.dx = input.dy = 0;
@@ -36,7 +38,7 @@ export class PlayerController {
     );
     this.camera.rotation.set(this.pitch + this.recoil, this.yaw, 0);
     this.recoil *= Math.exp(-12 * dt);
-    const targetFov = this.settings.fov + (this.input.down('ShiftLeft') ? 5 : 0);
+    const targetFov = this.zoomFov ?? this.settings.fov + (this.input.down('ShiftLeft') ? 5 : 0);
     this.camera.fov += (targetFov - this.camera.fov) * Math.min(1, dt * 8);
     this.camera.updateProjectionMatrix();
   }

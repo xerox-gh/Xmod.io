@@ -1,4 +1,6 @@
 import * as T from 'three';
+import { WEAPONS } from '../../../shared/weapons.js';
+import { makeFirearmModels } from '../weapons/firearms.js';
 import { makeExtraWeaponModels } from '../weapons/models.js';
 // Original block-built tool silhouette, with an emissive core and a world-space beam.
 export class ViewModel {
@@ -28,7 +30,7 @@ export class ViewModel {
     part([0.12, 0.32, 0.15], [0, -0.25, 0.14], metal);
     part([0.12, 0.12, 0.4], [0, 0.2, -0.02], this.core);
     for (const x of [-0.17, 0.17]) part([0.06, 0.08, 0.55], [x, 0, -0.22], light);
-    this.specials = makeExtraWeaponModels();
+    this.specials = { ...makeExtraWeaponModels(), ...makeFirearmModels() };
     for (const mesh of Object.values(this.specials)) {
       mesh.visible = false;
       this.root.add(mesh);
@@ -44,12 +46,23 @@ export class ViewModel {
   }
   update(dt) {
     const g = this.game;
-    this.root.visible = g.input.locked && !g.vehicleId && g.cameraRig?.mode === 'first';
+    this.root.visible =
+      g.input.locked &&
+      !g.vehicleId &&
+      g.cameraRig?.mode === 'first' &&
+      !(g.weapons.aiming && WEAPONS[g.toolId]?.scope);
     this.body.visible = !this.specials[g.toolId];
     for (const [id, model] of Object.entries(this.specials)) model.visible = id === g.toolId;
-    this.root.rotation.z = g.toolId === 'crowbar' ? -g.player.recoil * 7 : 0;
+    const aiming = g.weapons.aiming,
+      reload = Math.sin(g.weapons.reloadProgress(g.toolId) * Math.PI);
+    this.root.rotation.z = g.toolId === 'crowbar' ? -g.player.recoil * 7 : reload * -0.3;
+    this.root.rotation.x = reload * 0.45;
+    this.root.position.x += ((aiming ? 0.12 : 0.37) - this.root.position.x) * Math.min(1, dt * 16);
+    this.root.position.z = -0.75 + g.weapons.kick;
     this.root.position.y =
-      -0.32 +
+      -0.32 -
+      reload * 0.1 +
+      (aiming ? 0.06 : 0) +
       Math.sin(performance.now() * 0.006) *
         Math.min(
           0.018,

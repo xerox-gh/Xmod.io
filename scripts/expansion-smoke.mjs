@@ -92,7 +92,7 @@ try {
   await locked();
   // Headless pointer lock can emit cursor-warp deltas after menu clicks. Aim at
   // the actual prop through the player camera, then use the real tool input.
-  await page.evaluate(async () => {
+  const aimed = await page.evaluate(async () => {
     const { game: g } = await import('/src/main.js');
     const e = [...g.sim.entities.values()].at(-1),
       p = g.view.camera.position,
@@ -105,11 +105,14 @@ try {
     g.player.updateCamera(0);
     g.view.camera.updateMatrixWorld(true);
     for (const mesh of g.props.meshes.values()) mesh.updateMatrixWorld(true);
-    return g.props.aim(g.view.camera)?.id;
+    const hit = g.props.aim(g.view.camera)?.id;
+    // Queue the actual canvas click in this same browser task, before a queued
+    // headless cursor warp can change the view in a later animation frame.
+    g.input.canvas.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true }));
+    g.input.canvas.dispatchEvent(new MouseEvent('mouseup', { button: 0, bubbles: true }));
+    return { hit, target: e.id };
   });
-  await page.waitForTimeout(100);
-  await page.dispatchEvent('#game', 'mousedown', { button: 0, bubbles: true });
-  await page.dispatchEvent('#game', 'mouseup', { button: 0, bubbles: true });
+  expect(aimed.hit).toBe(aimed.target);
   await expect(page.locator('#body-count')).toContainText('2 /');
   await page.keyboard.press('KeyZ');
   await expect(page.locator('#body-count')).toContainText('1 /');

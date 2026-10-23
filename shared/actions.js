@@ -62,7 +62,7 @@ export function executeAction(sim, actor, a) {
         .filter((e) => actor.id === 'local' || e.owner === actor.id)
         .map((e) => e.id),
     );
-  if (a.kind === 'fire') return shoot(sim, actor, a.weapon);
+  if (a.kind === 'fire') return shoot(sim, actor, a.weapon, a.aim === true);
   if (a.kind === 'reload') return reloadWeapon(sim, actor, a.weapon);
   if (a.kind === 'vehicle') {
     if (actor.state.vehicleId) return exitCar(sim, actor);
