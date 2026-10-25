@@ -36,7 +36,12 @@ const ammo = () =>
     const { game: g } = await import('/src/main.js');
     return g.weapons.state(g.toolId).ammo;
   });
-const locked = () => expect(page.locator('#game')).toHaveAttribute('data-pointer-locked', 'true');
+const locked = async () => {
+  await expect(page.locator('#game')).toHaveAttribute('data-pointer-locked', 'true');
+  // Pointer lock completes before the next HUD/render update. In software
+  // rendering, shader compilation may take longer than a DOM assertion timeout.
+  await rendered();
+};
 async function equip(id, name) {
   await page.keyboard.press('KeyQ');
   await expect(page.locator('#game')).toHaveAttribute('data-pointer-locked', 'false');
