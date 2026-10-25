@@ -5,6 +5,8 @@ import { LIMITS } from './constants.js';
 import { removeConstraint } from './constraints.js';
 import { release } from './grabbing.js';
 import { stepProjectiles } from './combat.js';
+import { LabRuntime } from './lab/runtime.js';
+import { shardShape } from './lab/fracture.js';
 export const vec = (a) => new C.Vec3(...a);
 export const round = (n) => Math.round(n * 1000) / 1000;
 export class Simulation {
@@ -24,6 +26,7 @@ export class Simulation {
     this.perfTicks = 0;
     this.lastImpact = -1;
     this.onEvent = () => {};
+    this.lab = new LabRuntime(this);
   }
   changeMap(id) {
     const world = createWorld(id);
@@ -32,6 +35,7 @@ export class Simulation {
     for (const id of this.projectiles.keys()) this.emit('projectileRemove', { id });
     this.projectiles.clear();
     this.world = world;
+    this.lab.reset();
     this.emit('map', { map: id });
   }
   id(prefix = 'p') {
@@ -76,7 +80,7 @@ export class Simulation {
       color: options.color || def.color,
       frozen: options.frozen ?? !!def.anchored,
       behavior: { ...(def.behavior || {}), ...(options.behavior || {}) },
-      body: this.makeBody(type, scale),
+      body: this.makeBody(type, scale, options.behavior),
     };
     entity.body.position.set(...position);
     if (entity.frozen) {
@@ -92,6 +96,7 @@ export class Simulation {
     entity.body.aabbNeedsUpdate = true;
     this.entities.set(id, entity);
     this.world.addBody(entity.body);
+    this.lab.configure(entity);
     if (!this.remote)
       entity.body.addEventListener('collide', (event) => {
         const speed = Math.abs(event.contact.getImpactVelocityAlongNormal());
@@ -101,11 +106,17 @@ export class Simulation {
         }
         if (entity.behavior.explosive && speed > 11) entity.behavior.detonate = true;
         if (entity.behavior.npc && speed > 9) entity.behavior.stun = this.time + 3;
+        if (
+          speed > (entity.type === 'glass' ? 7 : entity.type === 'pot' ? 9 : 14) &&
+          entity.behavior.breakable
+        )
+          this.lab.breakQueue.add(entity.id);
+        if (speed > 6 && entity.behavior.cryo) this.lab.state(entity.id).thaw = true;
       });
     this.emit('spawn', { entity: this.serialize(entity) });
     return entity;
   }
-  makeBody(type, scale) {
+  makeBody(type, scale, behavior = {}) {
     const d = PROPS[type],
       s = d.size.map((n) => n * scale);
     let shape =
@@ -135,6 +146,7 @@ export class Simulation {
         ].map((f) => f.reverse()),
       });
     }
+    if (type === 'glass_shard' && behavior?.polygon) shape = shardShape(behavior.polygon, scale);
     const body = new C.Body({
       mass: d.mass * scale ** 3,
       shape: d.shape === 'pipe' ? undefined : shape,
@@ -219,7 +231,10 @@ export class Simulation {
         e.body.sleepTimeLimit = distant ? 0.3 : 0.8;
       }
     }
-    if (!this.remote) stepProjectiles(this, dt);
+    if (!this.remote) {
+      this.lab.step(dt);
+      stepProjectiles(this, dt);
+    }
     const start = performance.now();
     this.world.step(dt);
     this.physicsMs = performance.now() - start;

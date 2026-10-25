@@ -28,6 +28,10 @@ export class PropRegistry {
         mesh.scale.setScalar(event.entity.scale);
         mesh.traverse((c) => {
           if (c.userData.paint) c.material.color.set(event.entity.color);
+          if (c.userData.paint && !event.entity.behavior?.cryo)
+            c.material.roughness = ['glass', 'glass_shard'].includes(event.entity.type)
+              ? 0.08
+              : 0.78;
         });
       }
     }
@@ -59,22 +63,34 @@ export class PropRegistry {
       const e = this.sim.entities.get(id);
       if (!e) continue;
       mesh.position.copy(e.body.position);
+      mesh.scale.setScalar(e.scale);
       mesh.quaternion.copy(e.body.quaternion);
       const distance = camera ? camera.position.distanceToSquared(mesh.position) : 0,
         distant = distance > 4900 && (e.frozen || e.body.sleepState === 2);
       mesh.visible = !distant;
       mesh.traverse((child) => {
+        const signal = this.sim.lab.values.get(e.id)?.a;
         if (child.userData.lamp) {
           child.color.set(e.color);
-          child.visible = !!e.behavior.lit && distance < 1225 && lights < 8;
+          child.visible =
+            (signal === undefined ? !!e.behavior.lit : signal > 0) && distance < 1225 && lights < 8;
           if (child.visible) lights++;
         }
         if (child.userData.paint && ['lamp', 'neon'].includes(e.type)) {
           child.material.emissive.set(e.color);
-          child.material.emissiveIntensity = e.behavior.lit ? (e.type === 'neon' ? 2 : 0.5) : 0;
+          child.material.emissiveIntensity = (signal === undefined ? e.behavior.lit : signal > 0)
+            ? e.type === 'neon'
+              ? 2
+              : 0.5
+            : 0;
         }
         if (child.userData.paint && e.type === 'button')
           child.material.color.set(e.behavior.pressed ? '#d7fa94' : e.color);
+        if (child.userData.paint && (e.behavior.char || e.behavior.cryo)) {
+          child.material.color.set(e.behavior.cryo ? '#90dff0' : e.color);
+          if (e.behavior.char) child.material.color.lerp(new T.Color('#252a28'), e.behavior.char);
+          child.material.roughness = e.behavior.cryo ? 0.08 : 0.78;
+        }
       });
       if (distant) {
         const d = PROPS[e.type],

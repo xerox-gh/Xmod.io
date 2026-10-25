@@ -12,6 +12,10 @@ export class Chat {
       e.preventDefault();
       const text = this.input.value.trim();
       if (text && game.net.connected) game.net.send({ type: 'chat', text });
+      else if (text && game.lab?.peers.role === 'host') {
+        game.lab.peers.chat(text);
+        this.message(game.lab.peers.name || 'Host', text);
+      }
       this.input.value = '';
       this.close();
     };
@@ -33,7 +37,7 @@ export class Chat {
     log.scrollTop = log.scrollHeight;
   }
   open() {
-    if (!this.game.net.connected) {
+    if (!this.game.net.connected && this.game.lab?.peers.role !== 'host') {
       this.game.toast('Join a multiplayer room to chat');
       return;
     }

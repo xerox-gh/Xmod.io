@@ -1,6 +1,6 @@
 {
   "name": "xmod-io",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "An original procedural physics playground for the browser",
@@ -18,7 +18,8 @@
     "test:pages": "node scripts/pages-smoke.mjs",
     "check": "node scripts/check.js",
     "test:expansion": "node scripts/expansion-smoke.mjs",
-    "test:guns": "node scripts/guns-smoke.mjs"
+    "test:guns": "node scripts/guns-smoke.mjs",
+    "test:toybox": "node scripts/toybox-smoke.mjs"
   },
   "dependencies": {
     "cannon-es": "0.20.0",

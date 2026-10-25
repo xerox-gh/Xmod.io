@@ -32,6 +32,8 @@ export class Weather {
       const p = this.positions[i];
       p.y -= dt * (this.kind === 'rain' ? 24 : 3);
       p.x += dt * (this.kind === 'rain' ? 2 : 0.5);
+      p.x += dt * this.game.sim.lab.environment.windX * 0.3;
+      p.z += dt * this.game.sim.lab.environment.windZ * 0.3;
       if (p.y < 0) {
         p.y = 30;
         p.x = (Math.random() - 0.5) * 60;

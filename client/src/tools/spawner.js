@@ -1,4 +1,5 @@
 import { makePropMesh, disposeProp } from '../props/meshes.js';
+import * as C from 'cannon-es';
 export class Spawner {
   constructor(game) {
     this.game = game;
@@ -13,8 +14,22 @@ export class Spawner {
     return p.toArray();
   }
   spawn(type = this.selected) {
-    this.game.action({ kind: 'spawn', prop: type, p: this.position(), yaw: this.angle });
+    this.game.action({ kind: 'spawn', prop: type, p: this.positionFor(type), yaw: this.angle });
     this.game.spawnMenu?.recent(type);
+  }
+  positionFor(type) {
+    const p = this.position();
+    if (type === 'telepad') {
+      const hit = new C.RaycastResult();
+      this.game.sim.world.raycastClosest(
+        new C.Vec3(p[0], p[1] + 8, p[2]),
+        new C.Vec3(p[0], p[1] - 16, p[2]),
+        { collisionFilterMask: 1 },
+        hit,
+      );
+      if (hit.hasHit) p[1] = hit.hitPointWorld.y + 0.13;
+    }
+    return p;
   }
   click(button) {
     if (button === 0) this.spawn();

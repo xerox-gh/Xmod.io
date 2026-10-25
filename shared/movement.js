@@ -82,7 +82,12 @@ export function movePlayer(player, input, world, dt) {
     b.collisionResponse = true;
     b.type = C.Body.DYNAMIC;
     const slide = player.crouched && Math.hypot(b.velocity.x, b.velocity.z) > 7;
-    const friction = player.grounded ? (slide ? 0.4 : 5.5) : 0.05;
+    const icy = world.iceZones?.some(
+      (p) =>
+        Math.hypot(b.position.x - p.p[0], b.position.z - p.p[2]) < 3 &&
+        Math.abs(b.position.y - p.p[1]) < 2,
+    );
+    const friction = icy ? 0.01 : player.grounded ? (slide ? 0.4 : 5.5) : 0.05;
     b.velocity.x *= Math.max(0, 1 - friction * dt);
     b.velocity.z *= Math.max(0, 1 - friction * dt);
     const speed = player.crouched && !slide ? 4 : input.sprint ? 14 : 9;

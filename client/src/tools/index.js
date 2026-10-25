@@ -45,10 +45,13 @@ export class Tools {
         else if (tool === 'ragdoll' && button === 0) g.spawner.spawn('ragdoll');
         else if (tool === 'vehicle' && button === 0) g.spawner.spawn(g.vehicleChoice || 'car');
         else if (tool === 'toolgun') this.toolgun?.click(button);
+        else if (WEAPONS[tool]?.gadget && button === 2)
+          g.action({ kind: 'gadget', weapon: tool, button: 2 });
         else if (button === 0) g.weapons?.fire(tool);
       }
       if (input.pressed('KeyR')) {
-        if (g.toolId === 'toolgun') this.toolgun?.cycle();
+        if (['grapple', 'odm'].includes(g.toolId)) g.action({ kind: 'gadget', op: 'release' });
+        else if (g.toolId === 'toolgun') this.toolgun?.cycle();
         else g.weapons?.reload(g.toolId);
       }
       if (WEAPONS[g.toolId]?.automatic && input.buttons.has(0)) g.weapons.fire(g.toolId);

@@ -56,6 +56,7 @@ export function freeze(sim, id, value = true) {
   e.body.angularVelocity.setZero();
   e.body.aabbNeedsUpdate = true;
   e.body.wakeUp();
+  sim.lab.configure(e);
   sim.emit('change', { entity: sim.serialize(e) });
 }
 export function updateGrabs(sim, actors, dt) {

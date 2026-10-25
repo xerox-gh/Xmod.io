@@ -51,6 +51,24 @@ Choose **Multiplayer**, enter a name and a room ID, and create a room. A second 
 - `PORT` changes the Node port. If you change it in development, update the proxy target in `vite.config.js` too.
 - For a separately hosted client, set `VITE_SERVER_URL` **before building**. Set Node's `ALLOWED_ORIGINS` to a comma separated list of your client origins. See `.env.example`. Node reads environment variables from your shell; it does not automatically load an `.env` file.
 
+## Browser Toybox (v0.4)
+
+Open **Toybox** on the main menu, or **B → Toybox**. The expansion runs inside the browser on GitHub Pages, with local storage and downloadable files. See [the Toybox guide](docs/toybox.md) for controls, example circuits, mode rules and limits.
+
+| Tab | Added |
+| --- | --- |
+| Engineering | PID hoverballs; key-operated winches/hydraulics; multi-anchor pulleys; Keep Upright; axles, ball sockets and pair-only No-Collide; rubber/ice/foam/lead profiles; attraction/repulsion; adjustable buoyancy; light/smoke/rainbow ribbons |
+| Wiring | Colored cables; laser/proximity/speed/height sensors; AND/OR/NOT/XOR/clock/toggle chips; spatial synth emitters; number/text/graph screens; coordinate gimbals; defense turrets; wired lights, doors, motors, thrusters and winches |
+| Environment | Local gravity volumes, wind, airfoils, water currents/whirlpools, spreading fire/charring, wooden splinters, convex Voronoi glass shards, breakable pots, and momentum-preserving linked portal pads |
+| Garage | IndexedDB builds, frozen custom map layouts, replays, puppet clips and lap ghosts with thumbnails; gzip URL links; PNG build cards; dropped local models, textures and audio |
+| Gadgets | Grappling hook, dual tethers, swap gun, singularity grenade, cryo/ice ray, animated scale/shrink ray, and first-person RC vehicle/contraption control |
+| Modes | Prop Hunt, checkpoint Contraption Derby, Beacon Defense, Rising Lava, and 180-second build / 120-second explosive Build & Destroy rounds |
+| Actors | Colored factions with melee/ranged battles, Wander/Follow/Guard commands, five-second puppeteer loops, and billboard chasers with optional uploaded images |
+| Camera | Live CCTV/monitors, mirrors, bullet/scorch/paint decals, and canvas-rendered CRT/VHS/night-vision/pixel/comic filters included in screenshots and WebM |
+| Peers | Manual offer/answer WebRTC between two browsers, with physics/modes on the host and no signaling, STUN, TURN, cloud database or paid host |
+
+Direct peers need a reachable **LAN/direct network path**; restrictive NATs cannot be crossed without a relay. Imported media is session-local and is not embedded in saved builds or sent to peers. Custom maps are editable frozen prop layouts over a base map. These limits are explained in the guide.
+
 ## Guns update (v0.3)
 
 Click **Weapons** on the main menu, or use **Q → Weapons**, to equip a gun into slot **5**. The same choices remain in **B → Tools → Weapon**. Hold LMB with automatic guns, click LMB for single shots, hold RMB to aim (sniper scope), and press R to reload. Each gun has an original procedural model, recoil, a reload animation, muzzle flash, spatial sound and force on props. Scoped aiming lowers mouse sensitivity and improves shot precision. Existing pistols, shotguns and launchers also have distinct models.
@@ -63,7 +81,7 @@ Click **Weapons** on the main menu, or use **Q → Weapons**, to equip a gun int
 | Iron revolver   | 6        | Single shot | 1.9 s  | Heavy single-shot impulse              |
 | Bulwark LMG     | 80       | Automatic   | 3 s    | Long sustained fire                    |
 
-Ammo, fire cadence, raycasts and impulses remain server-authoritative online. Guns interact with the sandbox's props, reactive targets, explosive barrels and jointed dummies; player health/PvP damage is still outside the current game.
+Ammo, fire cadence, raycasts and impulses remain authoritative online. Guns interact with props, targets, explosive barrels and jointed dummies. Mini-modes add their own health and Prop Hunt rules; general competitive FPS combat/progression remains outside the game.
 
 ## What's new in v0.2
 
@@ -100,7 +118,7 @@ Aim at a dummy limb and open **B → Tools**, or select the Pose tool. Enter inc
 
 Doors toggle with E. Buttons toggle nearby doors owned by the same builder and activate that builder's motors/thrusters while pressed. E also toggles lamps and neon. Trampolines bounce falling bodies and players; conveyors push objects standing on them. Explosive barrels detonate on weapon hits, nearby explosions or hard impacts, with bounded chain reactions. Shooting targets count hits and emit feedback; dummies receive impulses and hit sounds.
 
-Crowbar has a short melee reach, grenades bounce before their fuse expires, the flamethrower repeats while LMB is held and can ignite explosive barrels, and the prop exploder turns a targeted prop into a radial blast. Weapons apply physical effects; there is no player-health/combat progression system.
+Crowbar has a short melee reach, grenades bounce before their fuse expires, the flamethrower repeats while LMB is held and can ignite explosive barrels, and the prop exploder turns a targeted prop into a radial blast. Weapons apply physical effects; mini-modes use temporary health rules without persistent combat progression.
 
 ## Controls
 
@@ -230,6 +248,7 @@ npx playwright install chromium
 npm run test:browser
 npm run test:expansion
 npm run test:guns
+npm run test:toybox
 npm run build:pages
 npm run test:pages
 ```

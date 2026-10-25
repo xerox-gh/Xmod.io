@@ -1,3 +1,4 @@
+import { LAB_TOOLS } from './lab/definitions.js';
 // All protocol names and resource limits are shared by the client and authority.
 export const LIMITS = Object.freeze({
   bodies: 200,
@@ -37,6 +38,7 @@ export const TOOL_MODES = [
   'Hinge',
   'Slider',
   'Pose',
+  ...LAB_TOOLS.map(([, name]) => name),
 ];
 export const HOTBAR = [
   {
@@ -84,5 +86,6 @@ export const TOOL_IDS = [
   'hinge',
   'slider',
   'pose',
+  ...LAB_TOOLS.map(([id]) => id),
 ];
 export const BIND_KEYS = ['KeyF', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'KeyI', 'KeyO'];

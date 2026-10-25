@@ -51,7 +51,8 @@ export class Avatars {
       ids.add(p.id);
       const record = this.players.get(p.id) || this.add(p.id, p.name);
       record.track.push(p);
-      record.root.visible = !p.vehicle;
+      record.disguise = p.disguise;
+      record.root.visible = !p.vehicle && !p.disguise;
     }
     for (const id of this.players.keys()) if (!ids.has(id)) this.remove(id);
   }

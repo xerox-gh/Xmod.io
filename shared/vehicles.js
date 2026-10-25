@@ -145,7 +145,7 @@ export function stepCars(sim, actors) {
       body.torque.vadd(body.vectorToWorldFrame(localTorque), body.torque);
       if (actor) body.wakeUp();
     }
-    if (actor) {
+    if (actor && actor.state.vehicleId === id) {
       actor.state.body.position.copy(body.pointToWorldFrame(new C.Vec3(0, 1.2, 0.3)));
       actor.state.body.velocity.setZero();
     }

@@ -35,6 +35,8 @@ import { GameConsole } from '../ui/console.js';
 import { NetworkClient } from '../net/client.js';
 import { Chat } from '../ui/chat.js';
 import { openMultiplayer } from '../ui/multiplayer.js';
+import { Toybox } from '../lab/index.js';
+import '../lab/style.css';
 export class Game {
   constructor() {
     this.settings = loadSettings();
@@ -89,6 +91,7 @@ export class Game {
     this.recorder = new Recorder(this);
     this.weather = new Weather(this);
     this.quality = new Quality(this);
+    this.lab = new Toybox(this);
     this.weaponChoice = 'pistol';
     this.vehicleChoice = 'car';
     this.sky = 'day';
@@ -175,6 +178,7 @@ export class Game {
     this.effects?.event(event);
     this.constraintView?.event(event);
     this.projectiles?.event(event);
+    this.lab?.event(event);
   }
   action(action) {
     try {
@@ -250,9 +254,15 @@ export class Game {
     for (const { line } of this.constraintView.lines.values())
       if (this.recorder.playing) line.visible = false;
     for (const { mesh } of this.projectiles.rockets.values()) mesh.visible = !this.recorder.playing;
-    this.view.renderer.render(this.view.scene, this.view.camera);
+    this.lab.update(dt);
+    this.render();
+  }
+  render() {
+    if (this.lab) this.lab.filters.render(this.view.scene, this.view.camera);
+    else this.view.renderer.render(this.view.scene, this.view.camera);
   }
   fixed(dt) {
+    this.sim.lab.actors = this.actors;
     dt *= this.sim.timeScale;
     this.actor.input = {
       ...(this.player.packet || {}),
@@ -262,8 +272,10 @@ export class Game {
       Object.assign(this.actor.input, { forward: 0, right: 0, jump: false, crouch: false });
     }
     if (!dt) return;
-    if (!this.player.state.vehicleId && this.cameraRig?.mode !== 'free') this.player.step(dt);
+    if (!this.player.state.vehicleId && !this.actor.rc && this.cameraRig?.mode !== 'free')
+      this.player.step(dt);
     if (!this.sim.remote) {
+      this.lab?.fixed(dt);
       updateGrabs(this.sim, this.actors, dt);
       stepBehaviors(this.sim, this.actors, dt);
       stepAttachments(this.sim, this.actors);

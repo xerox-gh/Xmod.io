@@ -9,6 +9,12 @@ export class Menus {
     this.el.querySelector('#play').onclick = () => game.resume();
     this.el.querySelector('#weapons').onclick = () => game.spawnMenu.open('Weapons');
     this.el.querySelector('#workbench').onclick = () => game.workbench.open();
+    const toybox = document.createElement('button');
+    toybox.id = 'toybox';
+    toybox.textContent = '◇ Toybox';
+    toybox.onclick = () => game.lab.open();
+    this.el.querySelector('.menu-links').insertBefore(toybox, this.el.querySelector('#workbench'));
+    this.el.querySelector('.menu-bottom span:last-child').textContent = 'v0.4 / XMOD.IO';
     this.el.querySelector('#settings').onclick = () => this.settings();
     this.el.querySelector('#controls').onclick = () => this.controls();
     this.el.querySelector('#multiplayer').onclick = () => this.multiplayer();

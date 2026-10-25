@@ -1,0 +1,151 @@
+.lab-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 0 18px;
+  border-bottom: 1px solid var(--border, #9da99b40);
+}
+.lab-tabs button {
+  padding: 9px 13px;
+  text-transform: capitalize;
+  background: #243c38;
+  color: #cbd9d3;
+  border: 1px solid #536a5c;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.lab-tabs .active {
+  background: #d7fa94;
+  color: #203b39;
+}
+.lab-content {
+  max-height: 64vh;
+  overflow: auto;
+  padding: 12px 4px;
+}
+.lab-content p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.lab-content input,
+.lab-content textarea,
+.lab-content select {
+  max-width: 100%;
+}
+.lab-content input[type='range'] {
+  padding: 4px;
+}
+.lab-spawn-grid,
+.lab-gadget-grid,
+.garage-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.lab-spawn-grid button {
+  text-transform: capitalize;
+  font-size: 12px;
+  min-height: 44px;
+}
+.lab-gadget-grid button {
+  padding: 20px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 160px;
+}
+.lab-gadget-grid small {
+  line-height: 1.5;
+  opacity: 0.65;
+}
+.lab-gadget-grid span {
+  color: #5c826b;
+  font-size: 11px;
+  margin-top: auto;
+}
+.garage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #80918b44;
+  border-radius: 12px;
+}
+.garage-card img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  border-radius: 7px;
+}
+.garage-card button {
+  padding: 7px;
+}
+.garage-card small {
+  opacity: 0.65;
+}
+.mode-hud {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 80px;
+  background: #193936df;
+  color: #e1efce;
+  border: 1px solid #b4ca9b44;
+  border-radius: 8px;
+  padding: 12px 18px;
+  font: 12px monospace;
+  z-index: 4;
+  pointer-events: none;
+  max-width: 80vw;
+  text-align: center;
+}
+.mode-hud[hidden] {
+  display: none;
+}
+.lab-target {
+  font: 11px monospace;
+  padding: 10px 0;
+}
+.lab-content textarea {
+  width: 100%;
+  font: 11px monospace;
+  overflow-wrap: anywhere;
+}
+.menu-links {
+  flex-wrap: wrap;
+}
+.modal:has(.lab-tabs) {
+  width: min(980px, 92vw);
+  max-width: 980px;
+}
+.lab-content input[type='text'],
+.lab-content input:not([type]) {
+  background: #152723;
+  color: #e8f0df;
+  border: 1px solid #52645b;
+  border-radius: 6px;
+  padding: 9px;
+  min-width: 0;
+  width: 60%;
+}
+.lab-content input[type='checkbox'] {
+  accent-color: #d7fa94;
+  width: 19px;
+  height: 19px;
+}
+.lab-content .file-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+.lab-content button:focus-visible,
+.lab-tabs button:focus-visible {
+  outline: 2px solid #d7fa94;
+  outline-offset: 2px;
+}

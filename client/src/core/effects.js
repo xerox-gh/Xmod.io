@@ -86,6 +86,9 @@ export class Effects {
       const p = this.pool[i];
       p.life -= dt;
       if (p.life > 0) {
+        const wind = this.game.sim.lab.environment;
+        p.v.x += wind.windX * dt * 0.3;
+        p.v.z += wind.windZ * dt * 0.3;
         p.v.y -= 9 * dt;
         p.p.addScaledVector(p.v, dt);
         this.dummy.position.copy(p.p);

@@ -63,6 +63,7 @@ export class Weapons {
     }
   }
   ammoLabel(id) {
+    if(WEAPONS[id].gadget)return 'GADGET';
     if (WEAPONS[id].unlimited) return 'MELEE';
     const s = this.state(id);
     return s.reload ? 'RELOADING' : `${s.ammo} / ${WEAPONS[id].capacity}`;

@@ -10,6 +10,7 @@ export function loadMap(id, scene) {
   scene.add(root);
   const map = mapFactories[id](root);
   return {
+    root,
     ...map,
     dispose() {
       scene.remove(root);

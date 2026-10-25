@@ -36,9 +36,11 @@ export class HUD {
     const scoped = !!(g.weapons.aiming && weapon?.scope);
     this.el.querySelector('.scope-overlay').hidden = !scoped;
     this.el.querySelector('.crosshair').hidden = scoped;
-    this.el.querySelector('#tool-hint').textContent = weapon?.gun
-      ? `${weapon.automatic ? 'Hold' : 'Click'} LMB fire · RMB ${weapon.scope ? 'scope' : 'aim'} · R reload · Q weapons`
-      : tool.hint;
+    this.el.querySelector('#tool-hint').textContent = weapon?.gadget
+      ? weapon.hint
+      : weapon?.gun
+        ? `${weapon.automatic ? 'Hold' : 'Click'} LMB fire · RMB ${weapon.scope ? 'scope' : 'aim'} · R reload · Q weapons`
+        : tool.hint;
     const slot = this.el.querySelector('[data-slot="4"]');
     slot.querySelector('small').textContent = WEAPON_NAMES[g.weaponChoice];
     slot.title = WEAPON_NAMES[g.weaponChoice];

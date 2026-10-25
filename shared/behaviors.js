@@ -21,6 +21,7 @@ export function spawnDoor(sim, p, owner, yaw = 0) {
 }
 export function hitEntity(sim, e, power = 1) {
   if (!e) return;
+  sim.lab.hit(e, power);
   const root = [...sim.entities.values()].find((b) => b.group === e.group && b.behavior.npc) || e;
   if (root.behavior.npc) {
     root.behavior.stun = sim.time + 3;
@@ -37,6 +38,16 @@ export function hitEntity(sim, e, power = 1) {
 }
 export function interactProp(sim, e) {
   if (!e) return false;
+  const npc = [...sim.entities.values()].find((p) => p.group === e.group && p.behavior.npc);
+  if (npc && ['friendly', 'blue', 'green'].includes(npc.behavior.faction || 'friendly')) {
+    npc.behavior.command = { wander: 'follow', follow: 'guard', guard: 'wander' }[
+      npc.behavior.command || 'wander'
+    ];
+    npc.behavior.guardX = npc.body.position.x;
+    npc.behavior.guardZ = npc.body.position.z;
+    sim.emit('change', { entity: sim.serialize(npc) });
+    return true;
+  }
   if (e.type === 'door') {
     e.behavior.open = !e.behavior.open;
     sim.emit('change', { entity: sim.serialize(e) });

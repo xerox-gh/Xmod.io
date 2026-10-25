@@ -115,6 +115,7 @@ export class AudioSynth {
       return;
     }
     this.position = e.p || e.entity?.p || null;
+    if (e.type === 'wireTone') this.tone(e.frequency, 0.17, e.waveform, 0.04, e.frequency);
     const attenuation = 1;
     if (e.type === 'targetHit') this.tone(950, 0.16, 'sine', 0.12, 480);
     if (e.type === 'dummyHit') this.hiss(0.06, 0.12, 700);

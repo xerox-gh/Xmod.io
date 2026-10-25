@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { extraMesh } from './extra-meshes.js';
+import { labMesh } from '../lab/meshes.js';
 import { PROPS } from '../../../shared/props.js';
 // Geometry is cached. Only each prop's materials need disposal.
 const cache = new Map();
@@ -33,7 +34,8 @@ export function makePropMesh(type, color = PROPS[type].color) {
     root.add(mesh);
     return mesh;
   };
-  if (extraMesh(type, d, add, { box, cylinder, sphere, geometry }, root, material, dark, light)) {
+  if (labMesh(type,d,add,{box,cylinder,sphere,geometry},root,material,dark,light)) {
+  } else if (extraMesh(type, d, add, { box, cylinder, sphere, geometry }, root, material, dark, light)) {
   } else if (d.shape === 'sphere') {
     add(sphere(), [d.size[0], d.size[0], d.size[0]]);
     if (type === 'ball')
@@ -90,5 +92,6 @@ export function makePropMesh(type, color = PROPS[type].color) {
   return root;
 }
 export function disposeProp(root) {
+  for(const item of root.userData.disposables||[])item.dispose();
   for (const m of root.userData.materials || []) m.dispose();
 }

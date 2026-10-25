@@ -2,6 +2,8 @@ import * as C from 'cannon-es';
 import { LIMITS } from './constants.js';
 import { freeze } from './grabbing.js';
 import { SliderConstraint } from './slider.js';
+import { labJoint } from './lab/joints.js';
+import { LAB_JOINTS } from './lab/definitions.js';
 const v = (a) => new C.Vec3(...a);
 export function addConstraint(sim, type, a, b, owner, pointA, pointB, options = {}) {
   if (sim.constraints.size >= LIMITS.constraints) throw new Error('Constraint limit reached');
@@ -9,6 +11,7 @@ export function addConstraint(sim, type, a, b, owner, pointA, pointB, options = 
     eb = sim.entities.get(b);
   if (!ea || !eb || a === b) throw new Error('Select two different props');
   let joint;
+  if (LAB_JOINTS.includes(type)) joint = labJoint(type, ea.body, eb.body, pointA, pointB, options);
   if (type === 'weld') joint = new C.LockConstraint(ea.body, eb.body, { maxForce: 1e6 });
   else if (type === 'rope')
     joint = new C.DistanceConstraint(
@@ -17,7 +20,7 @@ export function addConstraint(sim, type, a, b, owner, pointA, pointB, options = 
       options.length || Math.max(0.5, ea.body.position.distanceTo(eb.body.position)),
       4e4,
     );
-  else if (['wheel', 'hinge', 'motor'].includes(type)) {
+  else if (['wheel', 'hinge', 'motor', 'axis'].includes(type)) {
     const axis = v(options.axis || [1, 0, 0]);
     joint = new C.HingeConstraint(ea.body, eb.body, {
       pivotA: ea.body.pointToLocalFrame(v(pointA)),
@@ -27,7 +30,7 @@ export function addConstraint(sim, type, a, b, owner, pointA, pointB, options = 
       collideConnected: false,
       maxForce: 8e4,
     });
-    if (type !== 'hinge') joint.enableMotor();
+    if (type !== 'hinge' && type !== 'axis') joint.enableMotor();
     joint.setMotorMaxForce(120);
     joint.setMotorSpeed(0);
   } else if (type === 'slider') {
@@ -47,8 +50,8 @@ export function addConstraint(sim, type, a, b, owner, pointA, pointB, options = 
       twistAngle: Math.PI / 3,
       maxForce: 2e4,
     });
-  else throw new Error('Invalid constraint');
-  joint.collideConnected = false;
+  else if (!joint) throw new Error('Invalid constraint');
+  joint.collideConnected = type === 'wire';
   sim.world.addConstraint(joint);
   const id = sim.id('c');
   const record = {
@@ -98,7 +101,7 @@ export function resize(sim, id, scale) {
   const old = e.scale;
   scale = Math.max(0.35, Math.min(4, scale));
   // Replacing the collision shape preserves the body identity used by every joint.
-  const next = sim.makeBody(e.type, scale);
+  const next = sim.makeBody(e.type, scale, e.behavior);
   while (e.body.shapes.length) e.body.removeShape(e.body.shapes[0]);
   next.shapes.forEach((shape, i) =>
     e.body.addShape(shape, next.shapeOffsets[i], next.shapeOrientations[i]),
@@ -109,6 +112,7 @@ export function resize(sim, id, scale) {
   e.body.updateBoundingRadius();
   e.body.aabbNeedsUpdate = true;
   e.body.wakeUp();
+  sim.lab.configure(e);
   for (const c of [...sim.constraints.values()])
     if (c.a === id || c.b === id) removeConstraint(sim, c.id);
   sim.emit('change', { entity: sim.serialize(e) });
@@ -129,7 +133,9 @@ export function stepAttachments(sim, actors) {
       ((!c.bind || c.bind === 'KeyF') && input?.activate) ||
       [...sim.entities.values()].some(
         (e) => e.owner === c.owner && e.type === 'button' && e.behavior.pressed,
-      )
+      ) ||
+      sim.lab.values.get(c.b)?.a > 0 ||
+      sim.lab.values.get(c.a)?.a > 0
     );
     if (c.type === 'wheel' || c.type === 'motor') {
       c.joint.setMotorSpeed(active ? (c.speed ?? -18) : 0);

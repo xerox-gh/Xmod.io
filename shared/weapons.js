@@ -1,3 +1,4 @@
+import { GADGETS } from './lab/gadgets.js';
 // The authority owns these stats; browsers use the same definitions for the catalog.
 const weapon = (name, stats) =>
   Object.freeze({
@@ -10,6 +11,21 @@ const weapon = (name, stats) =>
     ...stats,
   });
 export const WEAPONS = Object.freeze({
+  ...Object.fromEntries(
+    Object.entries(GADGETS).map(([id, d]) => [
+      id,
+      weapon(d.name, {
+        gadget: true,
+        hint: d.hint,
+        unlimited: true,
+        capacity: 999,
+        interval: id === 'singularity' ? 0.8 : 0.2,
+        reload: 0.1,
+        flash: '#9be2eb',
+        recoil: 0.008,
+      }),
+    ]),
+  ),
   pistol: weapon('Pulse pistol', {
     gun: true,
     capacity: 12,

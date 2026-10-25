@@ -26,12 +26,16 @@ export class Workbench {
     game.construction = { speed: 8, bind: 'KeyF', axis: 'y', travel: 4 };
   }
   open(tab = this.tab) {
+    if (tab === 'toybox') {
+      this.game.lab.open();
+      return;
+    }
     const g = this.game;
     this.target = g.props.aim(g.view.camera)?.id || this.target;
     this.tab = tab;
     g.menus.modal(
       'Workbench',
-      `<nav class="workbench-tabs">${['builds', 'world', 'tools', 'capture'].map((id) => `<button data-worktab="${id}" class="${this.tab === id ? 'active' : ''}">${id[0].toUpperCase() + id.slice(1)}</button>`).join('')}</nav><div class="workbench-content"></div><footer class="workbench-footer"><span>Save, tune and build · B opens Workbench</span><button id="workbench-play">Back to playground ↗</button></footer>`,
+      `<nav class="workbench-tabs">${['builds', 'world', 'tools', 'capture', 'toybox'].map((id) => `<button data-worktab="${id}" class="${this.tab === id ? 'active' : ''}">${id[0].toUpperCase() + id.slice(1)}</button>`).join('')}</nav><div class="workbench-content"></div><footer class="workbench-footer"><span>Save, tune and build · B opens Workbench</span><button id="workbench-play">Back to playground ↗</button></footer>`,
     );
     const panel = g.menus.panel;
     panel
@@ -173,6 +177,7 @@ export class Workbench {
       on('equip-tool', () => {
         settings();
         g.toolMode = Number(root.querySelector('#construction-mode').value);
+        if (g.toolMode >= 13) Object.assign(g.lab.settings, g.construction);
         g.tools.toolgun.first = null;
         g.selectTool(1);
         g.resume();

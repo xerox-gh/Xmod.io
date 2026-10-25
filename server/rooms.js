@@ -93,12 +93,13 @@ export class Room {
     if (!this.players.size) this.emptySince = performance.now();
   }
   tick() {
+    this.sim.lab.actors=this.players;
     const now = performance.now(),
       dt = STEP * this.sim.timeScale;
     for (const a of this.players.values()) {
       if (now - a.lastInput > 350) a.input = { yaw: a.state.yaw, pitch: a.state.pitch };
       if (a.state.vehicleId && !this.sim.vehicles.has(a.state.vehicleId)) exitCar(this.sim, a);
-      if (!a.state.vehicleId && dt) movePlayer(a.state, a.input, this.sim.world, dt);
+      if (!a.state.vehicleId && !a.rc && dt) movePlayer(a.state, a.input, this.sim.world, dt);
       else {
         a.state.yaw = a.input.yaw;
         a.state.pitch = a.input.pitch;
@@ -125,6 +126,7 @@ export class Room {
         fly: a.state.fly,
         crouch: a.state.crouched,
         vehicle: a.state.vehicleId || null,
+        health:a.health??100,disguise:a.disguise,rc:a.rc,
       })),
       props: [...this.sim.entities.values()].map((e) => ({
         id: e.id,
@@ -133,6 +135,7 @@ export class Room {
       })),
       vehicles: vehicleSnapshot(this.sim),
       projectiles: [...this.sim.projectiles.values()].map((r) => ({ id: r.id, p: r.p.toArray() })),
+      toybox:{mode:this.sim.lab.modes.snapshot(),signals:[...this.sim.lab.values],environment:this.sim.lab.environment},
     };
   }
 }

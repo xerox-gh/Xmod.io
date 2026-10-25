@@ -5,6 +5,7 @@ import { LIMITS } from './constants.js';
 import { addConstraint, serializeConstraint } from './constraints.js';
 import { freeze } from './grabbing.js';
 import { setupVehicle } from './vehicles.js';
+import { LAB_JOINTS, safeLabBehavior } from './lab/definitions.js';
 const vector = (a, n = 3) => Array.isArray(a) && a.length === n && a.every(Number.isFinite);
 export function connectedEntities(sim, start) {
   const ids = new Set([start]);
@@ -32,6 +33,7 @@ export function captureBuild(sim, ids = [...sim.entities.keys()], external = fal
     format: 'xmod-build',
     version: 1,
     map: sim.world.map.id,
+    environment: { ...sim.lab.environment },
     entities: [...sim.entities.values()].filter((e) => set.has(e.id)).map((e) => sim.serialize(e)),
     constraints: [...sim.constraints.values()]
       .filter((c) => (external ? set.has(c.a) || set.has(c.b) : set.has(c.a) && set.has(c.b)))
@@ -86,7 +88,9 @@ export function validateBuild(data, { external = false } = {}) {
   const constraints = data.constraints.map((c) => {
     if (
       !c ||
-      !['weld', 'rope', 'wheel', 'joint', 'hinge', 'motor', 'slider'].includes(c.type) ||
+      !['weld', 'rope', 'wheel', 'joint', 'hinge', 'motor', 'slider', ...LAB_JOINTS].includes(
+        c.type,
+      ) ||
       c.a === c.b ||
       (!external && (!ids.has(c.a) || !ids.has(c.b))) ||
       !vector(c.pa) ||
@@ -103,12 +107,26 @@ export function validateBuild(data, { external = false } = {}) {
     out.bind = /^Key[FJKLUIO]$/.test(c.bind) ? c.bind : 'KeyF';
     out.effect = ['thruster', 'balloon', 'wheel', 'door'].includes(c.effect) ? c.effect : undefined;
     out.length = Math.max(0.1, Math.min(100, Number(c.length) || 1));
+    out.downBind = /^Key[FJKLUIO]$/.test(c.downBind) ? c.downBind : 'KeyK';
+    out.input = ['a', 'b', 'x', 'y', 'z'].includes(c.input) ? c.input : 'a';
+    out.color = /^#[\da-f]{6}$/i.test(c.color) ? c.color : '#87d8cc';
+    if (
+      Array.isArray(c.anchors) &&
+      c.anchors.length > 0 &&
+      c.anchors.length <= 4 &&
+      c.anchors.every((p) => vector(p) && p.every((n) => Math.abs(n) < 170))
+    )
+      out.anchors = c.anchors.map((p) => [...p]);
     return out;
   });
-  return { ...data, entities, constraints };
+  const environment = {};
+  for (const key of ['windX', 'windZ', 'currentX', 'currentZ', 'whirlpool'])
+    if (Number.isFinite(data.environment?.[key]))
+      environment[key] = Math.max(-20, Math.min(20, data.environment[key]));
+  return { ...data, entities, constraints, environment };
 }
 function safeBehavior(value) {
-  const out = {};
+  const out = { ...safeLabBehavior(value) };
   if (value && typeof value === 'object')
     for (const key of ['npc', 'explosive', 'lit', 'open', 'pressed', 'pose'])
       if (typeof value[key] === 'boolean') out[key] = value[key];
@@ -164,6 +182,13 @@ export function restoreBuild(
       created.push(e.id);
       if (PROPS[e.type].vehicle) setupVehicle(sim, e);
       if (source.frozen) freeze(sim, e.id, true);
+    }
+    for (const id of created) {
+      const e = sim.entities.get(id);
+      for (const key of ['portal', 'camera'])
+        if (idMap.has(e.behavior[key])) e.behavior[key] = idMap.get(e.behavior[key]);
+        else if (!preserve) delete e.behavior[key];
+      sim.emit('change', { entity: sim.serialize(e) });
     }
     for (const c of data.constraints) {
       const a = sim.entities.get(idMap.get(c.a) || c.a),

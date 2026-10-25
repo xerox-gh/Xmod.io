@@ -1,5 +1,6 @@
 // Dimensions in meters, mass in kilograms. Every visual is procedural.
 import { EXTRA_PROPS } from './extra-props.js';
+import { LAB_PROPS } from './lab/definitions.js';
 const definitions = {
   box: {
     name: 'Utility cube',
@@ -164,6 +165,9 @@ const definitions = {
   },
 };
 Object.assign(definitions, EXTRA_PROPS);
+Object.assign(definitions, LAB_PROPS);
+for (const id of ['gravity_zone', 'telepad', 'core', 'checkpoint']) definitions[id].anchored = true;
+definitions.crate.behavior = { breakable: true };
 definitions.car.vehicle = 'car';
 for (const id of [
   'box',
@@ -203,5 +207,11 @@ export const CATEGORIES = [
   'Targets',
   'Lighting',
   'Mega props',
+  'Devices',
+  'Wire',
+  'Destructibles',
+  'Environment',
+  'Optics',
+  'Gamemodes',
 ];
 export const publicProps = Object.entries(PROPS).filter(([, p]) => p.category !== 'internal');

@@ -35,6 +35,7 @@ export function shoot(sim, actor, id, aiming = false) {
   }
   if (!def.unlimited) s.ammo--;
   s.next = sim.time + def.interval;
+  if (def.gadget) return sim.lab.fire(actor, id, 0);
   const st = actor.state,
     origin = st.body.position.vadd(new C.Vec3(0, st.crouched ? 0.25 : 0.65, 0)),
     dir = new C.Vec3(
@@ -79,11 +80,13 @@ export function shoot(sim, actor, id, aiming = false) {
       delta.normalize();
       if (delta.dot(dir) > 0.87) {
         hitEntity(sim, e, 0.2);
+        sim.lab.ignite(e);
         if (!e.frozen) e.body.applyImpulse(dir.scale(25));
       }
     }
     sim.emit('flame', { p: origin.vadd(dir.scale(2)).toArray(), dir: dir.toArray() });
   } else {
+    const hitIds = new Set();
     const spread = def.spread * (aiming && def.aimFov ? 0.35 : 1);
     for (let i = 0; i < def.pellets; i++) {
       const d = dir.vadd(
@@ -104,6 +107,7 @@ export function shoot(sim, actor, id, aiming = false) {
       );
       if (result.hasHit) {
         const entity = sim.entities.get(result.body.entityId);
+        if (entity) hitIds.add(entity.id);
         hitEntity(sim, entity);
         if (entity && id === 'exploder') {
           const p = entity.body.position.clone();
@@ -124,6 +128,7 @@ export function shoot(sim, actor, id, aiming = false) {
         hit: result.hasHit,
       });
     }
+    sim.lab.modes.shot(actor, hitIds);
   }
   sim.emit('shot', { owner: actor.id, weapon: id, ammo: s.ammo, p: origin.toArray() });
   return true;

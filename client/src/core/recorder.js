@@ -19,7 +19,7 @@ export class Recorder {
   }
   screenshot() {
     const g = this.game;
-    g.view.renderer.render(g.view.scene, g.view.camera);
+    g.render();
     g.canvas.toBlob((blob) => {
       if (blob) downloadBlob(blob, `xmod-${Date.now()}.png`);
     }, 'image/png');

@@ -1,5 +1,6 @@
 import * as C from 'cannon-es';
 import { workshopAction } from './workshop-actions.js';
+import { labAction } from './lab/actions.js';
 import { deleteWithUndo } from './builds.js';
 import { spawnDoor } from './behaviors.js';
 import { LIMITS, BIND_KEYS } from './constants.js';
@@ -26,6 +27,8 @@ export function ownEntity(sim, actor, id) {
 }
 export function executeAction(sim, actor, a) {
   if (!a || typeof a.kind !== 'string') throw new Error('Invalid action');
+  sim.lab.modes.guardAction(actor, a);
+  if (labAction(sim, actor, a, ownEntity)) return;
   if (workshopAction(sim, actor, a, ownEntity, targetEntity)) return;
   if (a.kind === 'spawn') {
     if (!Object.hasOwn(PROPS, a.prop) || PROPS[a.prop].category === 'internal')

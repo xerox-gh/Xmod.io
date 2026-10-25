@@ -207,11 +207,15 @@ export class NetworkClient {
       return;
     }
     if (m.type === MSG.SNAPSHOT) {
+      g.lab?.snapshot(m.toybox);
       for (const p of m.props) this.tracks.get(p.id)?.push(p);
       this.avatars.snapshot(m.players, this.id);
       g.vehicles.states = m.vehicles;
       const own = m.players.find((p) => p.id === this.id);
       if (own) {
+        g.actor.health = own.health ?? 100;
+        g.actor.disguise = own.disguise;
+        g.actor.rc = own.rc;
         const b = g.player.state.body,
           err = b.position.distanceTo(new C.Vec3(...own.p));
         if (err > 4) b.position.set(...own.p);
